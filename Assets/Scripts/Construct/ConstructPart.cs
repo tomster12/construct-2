@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using UnityEngine;
 
 public class ConstructPart : MonoBehaviour
@@ -8,33 +7,35 @@ public class ConstructPart : MonoBehaviour
 
     private Construct currentConstruct;
     private IPartController currentController;
-    private List<PartComponent> partComponents = new List<PartComponent>();
 
-    private void Awake()
-    {
-        partComponents = GetComponents<PartComponent>().ToList();
-    }
-
+    public Action<Construct> OnJoinConstructEvent = delegate { };
+    public Action OnLeaveConstructEvent = delegate { };
     public bool IsConstructed => currentConstruct != null;
     public bool IsControlled => currentController != null;
+    public IPartController CurrentController => currentController;
+    public Construct Construct => currentConstruct;
 
     public void OnJoinConstruct(Construct construct)
     {
-        if (currentConstruct != null) throw new System.Exception("Cannot OnJoinConstruct(construct) when already joined to construct.");
+        if (currentConstruct != null) throw new Exception("Cannot OnJoinConstruct(construct) when already joined to construct.");
         currentConstruct = construct;
         if (inherentMovement != null) currentConstruct.RegisterPartMovement(inherentMovement);
+        OnJoinConstructEvent(construct);
     }
 
-    public void OnleaveConstruct()
+    public void OnleaveConstruct(Construct construct)
     {
-        if (currentConstruct == null) throw new System.Exception("Cannot OnleaveConstruct(construct) when not joined to construct.");
+        if (currentConstruct != construct) throw new Exception("Cannot OnleaveConstruct(construct) when not joined to construct.");
         if (inherentMovement != null) currentConstruct.DeregisterPartMovement(inherentMovement);
+        OnLeaveConstructEvent();
         currentConstruct = null;
     }
 
+    public T GetPartComponent<T>() where T : PartComponent => GetComponent<T>();
+
     public void SetController(IPartController controller)
     {
-        if (currentController != null) throw new System.Exception("Cannot SetController(controller) when already have a controller.");
+        if (currentController != null) throw new Exception("Cannot SetController(controller) when already have a controller.");
         currentController = controller;
     }
 }
