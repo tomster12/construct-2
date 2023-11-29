@@ -14,7 +14,6 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-
         if (Input.GetMouseButtonDown(0) && !isAttaching)
         {
             construct.UseDownAction("Attach");
