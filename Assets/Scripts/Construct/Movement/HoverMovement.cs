@@ -3,30 +3,24 @@ using UnityEngine;
 
 public class HoverMovement : ConstructMovement, IAttacherMovement
 {
-    [SerializeField] ConstructPart part;
+    [SerializeField] private ConstructPart part;
 
-    public override bool IsControlling { get; protected set; }
     public override bool IsBlocking => IsAttachTransitioning;
     public bool IsAttachTransitioning { get; private set; }
 
-    private void Update()
-    {
-
-    }
-
     public override void Aim(Vector3 pos)
     {
-        Debug.Log("HoverMovement.Aim(pos) not implemented.");
+        // TODO: Aim
     }
 
     public override void Move(Vector3 dir)
     {
-        Debug.Log("HoverMovement.Move(dir) not implemented.");
+        // TODO: Move
     }
 
-    public IEnumerator Attach(AttacheePartComponent atachee)
+    public IEnumerator Attach(AttacheeComponent atachee)
     {
-        Debug.Log("HoverMovement.Attach(atachee) not implemented.");
+        // TODO: Attach
         IsAttachTransitioning = true;
         yield return new WaitForSeconds(1f);
         IsAttachTransitioning = false;
@@ -34,26 +28,26 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
 
     public IEnumerator Detach()
     {
-        Debug.Log("HoverMovement.Detach() not implemented.");
+        // TODO: Detach
         IsAttachTransitioning = true;
         yield return new WaitForSeconds(1f);
         IsAttachTransitioning = false;
     }
 
-    public bool CanAttach(AttacheePartComponent attachee)
-    {
-        return IsControlling && !IsBlocking;
-    }
+    public bool CanAttach(AttacheeComponent attachee) => CanSetControlling(true);
 
-    public bool CanDetach()
-    {
-        return !IsControlling && !IsBlocking;
-    }
+    public bool CanDetach() => CanSetControlling(false);
 
     public override void SetControlling(bool isControlling)
     {
+        if (!CanSetControlling(isControlling)) throw new System.Exception("Cannot SetControlling(true) when CanControl is false.");
         IsControlling = true;
         if (isControlling) part.SetController(this);
         else part.SetController(null);
+    }
+
+    public override bool CanSetControlling(bool isControlling)
+    {
+        return !IsBlocking;
     }
 }

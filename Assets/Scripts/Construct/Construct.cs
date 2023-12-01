@@ -11,9 +11,9 @@ public class Construct : MonoBehaviour
     private HashSet<ConstructMovement> constructMovements = new HashSet<ConstructMovement>();
     public Dictionary<string, ConstructAction> constructActions = new Dictionary<string, ConstructAction>();
 
-    public void Move(Vector3 dir) { if (currentMovement != null) Move(dir); }
+    public void Move(Vector3 dir) { if (currentMovement != null) currentMovement.Move(dir); }
 
-    public void Aim(Vector3 pos) { if (currentMovement != null) Aim(pos); }
+    public void Aim(Vector3 pos) { if (currentMovement != null) currentMovement.Aim(pos); }
 
     public ConstructAction UseDownAction(string actionName)
     {
@@ -37,6 +37,19 @@ public class Construct : MonoBehaviour
 
     public void VisualiseAllActions() { foreach (ConstructAction action in constructActions.Values) action.Visualise(); }
 
+    public void PickBestMovement()
+    {
+        if (currentMovement != null) return;
+        foreach (ConstructMovement movement in constructMovements)
+        {
+            if (movement.CanSetControlling(true))
+            {
+                SetMovement(movement);
+                return;
+            }
+        }
+    }
+
     public void AddPart(ConstructPart part)
     {
         if (part.IsConstructed) throw new Exception("Cannot AddPart(part) when part already constructed.");
@@ -55,10 +68,9 @@ public class Construct : MonoBehaviour
 
     public void RegisterPartMovement(ConstructMovement movement)
     {
-
         if (constructMovements.Contains(movement)) throw new Exception("Cannot RegisterPartMovement(movement), already registered!");
         constructMovements.Add(movement);
-        if (currentMovement == null) SetMovement(movement);
+        PickBestMovement();
     }
 
     public void DeregisterPartMovement(ConstructMovement movement)
@@ -66,6 +78,7 @@ public class Construct : MonoBehaviour
         if (!constructMovements.Contains(movement)) throw new Exception("Cannot DeregisterPartMovement(movement), not registered!");
         if (currentMovement == movement) SetMovement(null);
         constructMovements.Remove(movement);
+        PickBestMovement();
     }
 
     public void RegisterAction(ConstructAction action)
@@ -87,7 +100,7 @@ public class Construct : MonoBehaviour
         AddPart(this.corePart);
     }
 
-    public void SetMovement(ConstructMovement movement)
+    private void SetMovement(ConstructMovement movement)
     {
         if (movement != null && movement.IsControlling) throw new Exception("Cannot SetMovement(movement) on a movement that already IsControlling.");
         if (currentMovement != null) currentMovement.SetControlling(false);

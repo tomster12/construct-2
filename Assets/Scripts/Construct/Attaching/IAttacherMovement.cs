@@ -2,8 +2,8 @@ using System.Collections;
 
 interface IAttacherMovement : IPartController
 {
-    IEnumerator Attach(AttacheePartComponent atachee);
+    IEnumerator Attach(AttacheeComponent atachee);
     IEnumerator Detach();
-    bool CanAttach(AttacheePartComponent attachee);
+    bool CanAttach(AttacheeComponent attachee);
     bool CanDetach();
 }

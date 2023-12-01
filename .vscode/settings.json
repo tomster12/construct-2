@@ -51,5 +51,6 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Construct 2.sln"
+    "dotnet.defaultSolution": "Construct 2.sln",
+    "C_Cpp.errorSquiggles": "enabled"
 }

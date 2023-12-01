@@ -1,37 +1,53 @@
 using UnityEngine;
 
-[RequireComponent(typeof(AttacherPartComponent))]
 public class ToggleAttachAction : ConstructAction
 {
     public override string ActionName => "Attach";
     public override ActionUseType UseType => ActionUseType.SINGLE;
-    public override bool CanUse => base.CanUse && attacher.CanToggleAttach(aimedAtachee);
+    public override bool CanUse => base.CanUse && (CanAttach || CanDetach);
+    public bool CanAttach => aimedAtachee != null && attacher.CanAttach(aimedAtachee);
+    public bool CanDetach => attacher.CanDetach();
     public override bool IsActive => attacher.IsTransitioning;
     public override bool IsCooldown => false;
 
-    private AttacherPartComponent attacher;
-    private AttacheePartComponent aimedAtachee;
+    private Raycaster raycaster = new Raycaster();
+    private AttacherComponent attacher;
+    private AttacheeComponent aimedAtachee;
 
     private void Awake()
     {
-        attacher = GetComponent<AttacherPartComponent>();
+        attacher = GetComponent<AttacherComponent>();
     }
 
     private void Update()
     {
-        // if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out RaycastHit hit))
-        // {
-        //     aimedAtachee = hit.collider.GetComponent<AttacheePartComponent>();
-        // }
+        raycaster.Update();
+        if (raycaster.Hit) aimedAtachee = raycaster.HitTransform.GetComponent<AttacheeComponent>();
     }
 
     public override void UseDown()
     {
         if (!CanUse) return;
-        attacher.ToggleAttach(aimedAtachee);
+        if (attacher.IsAttached && CanDetach) attacher.Detach();
+        else if (CanAttach) attacher.Attach(aimedAtachee);
     }
 
     public override void UseUp() { }
 
     public override void Visualise() { }
+
+    private void OnDrawGizmos()
+    {
+        // TODO: Remove this debug GUI
+        if (aimedAtachee != null)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawSphere(aimedAtachee.transform.position, 0.1f);
+        }
+        if (raycaster.Hit)
+        {
+            Gizmos.color = new Color(0.9f, 0.1f, 0.1f, 0.5f);
+            Gizmos.DrawLine(transform.position, raycaster.HitPoint);
+        }
+    }
 }
