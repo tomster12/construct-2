@@ -34,8 +34,6 @@ public class ToggleAttachAction : ConstructAction
 
     public override void UseUp() { }
 
-    public override void Visualise() { }
-
     private void OnDrawGizmos()
     {
         // TODO: Remove this debug GUI

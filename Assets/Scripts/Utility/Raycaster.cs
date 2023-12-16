@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// TODO: Include WorldObject.
 class Raycaster
 {
     private static float MAX_DISTANCE = 100f;

@@ -6,16 +6,22 @@ using UnityEngine;
 public class Construct : MonoBehaviour
 {
     private ConstructPart corePart;
-    private ConstructMovement currentMovement;
+    private ConstructMovement controlledMovement;
     private HashSet<ConstructPart> constructParts = new HashSet<ConstructPart>();
     private HashSet<ConstructMovement> constructMovements = new HashSet<ConstructMovement>();
     public Dictionary<string, ConstructAction> constructActions = new Dictionary<string, ConstructAction>();
 
-    public void Move(Vector3 dir) { if (currentMovement != null) currentMovement.Move(dir); }
+    public void Move(Vector3 dir)
+    {
+        if (controlledMovement != null) controlledMovement.Move(dir);
+    }
 
-    public void Aim(Vector3 pos) { if (currentMovement != null) currentMovement.Aim(pos); }
+    public void Aim(Vector3 pos)
+    {
+        if (controlledMovement != null) controlledMovement.Aim(pos);
+    }
 
-    public ConstructAction UseDownAction(string actionName)
+    public ConstructAction UseActionDown(string actionName)
     {
         if (constructActions.ContainsKey(actionName))
         {
@@ -25,7 +31,7 @@ public class Construct : MonoBehaviour
         return null;
     }
 
-    public ConstructAction UseUpAction(string actionName)
+    public ConstructAction UseActionUp(string actionName)
     {
         if (constructActions.ContainsKey(actionName))
         {
@@ -35,16 +41,14 @@ public class Construct : MonoBehaviour
         return null;
     }
 
-    public void VisualiseAllActions() { foreach (ConstructAction action in constructActions.Values) action.Visualise(); }
-
     public void PickBestMovement()
     {
-        if (currentMovement != null) return;
+        if (controlledMovement != null) return;
         foreach (ConstructMovement movement in constructMovements)
         {
-            if (movement.CanSetControlling(true))
+            if (movement.CanSetControlled(true))
             {
-                SetMovement(movement);
+                SetControlledMovement(movement);
                 return;
             }
         }
@@ -53,15 +57,14 @@ public class Construct : MonoBehaviour
     public void AddPart(ConstructPart part)
     {
         if (part.IsConstructed) throw new Exception("Cannot AddPart(part) when part already constructed.");
-        if (constructParts.Contains(part)) throw new Exception("Cannot AddPart(part), already registered!");
         constructParts.Add(part);
         part.OnJoinConstruct(this);
     }
 
     public void RemovePart(ConstructPart part)
     {
-        if (!constructParts.Contains(part)) throw new Exception("Cannot RemovePart(part), not registered!");
         if (!part.IsConstructed) throw new Exception("Cannot RemovePart(part) when part not constructed.");
+        if (!constructParts.Contains(part)) throw new Exception("Cannot RemovePart(part), not registered!");
         constructParts.Remove(part);
         part.OnleaveConstruct(this);
     }
@@ -76,7 +79,7 @@ public class Construct : MonoBehaviour
     public void DeregisterPartMovement(ConstructMovement movement)
     {
         if (!constructMovements.Contains(movement)) throw new Exception("Cannot DeregisterPartMovement(movement), not registered!");
-        if (currentMovement == movement) SetMovement(null);
+        if (controlledMovement == movement) SetControlledMovement(null);
         constructMovements.Remove(movement);
         PickBestMovement();
     }
@@ -93,18 +96,18 @@ public class Construct : MonoBehaviour
         constructActions.Remove(action.ActionName);
     }
 
-    public void SetCore(ConstructPart corePart)
+    public void SetAndAddCore(ConstructPart corePart)
     {
         if (this.corePart != null) throw new Exception("Cannot SetCore() when already have a core.");
         this.corePart = corePart;
         AddPart(this.corePart);
     }
 
-    private void SetMovement(ConstructMovement movement)
+    private void SetControlledMovement(ConstructMovement movement)
     {
-        if (movement != null && movement.IsControlling) throw new Exception("Cannot SetMovement(movement) on a movement that already IsControlling.");
-        if (currentMovement != null) currentMovement.SetControlling(false);
-        currentMovement = movement;
-        if (currentMovement != null) currentMovement.SetControlling(true);
+        if (movement != null && movement.isControlled) throw new Exception("Cannot SetControlledMovement(movement) on a movement that already isControlled.");
+        if (controlledMovement != null) controlledMovement.SetControlled(false);
+        controlledMovement = movement;
+        if (controlledMovement != null) controlledMovement.SetControlled(true);
     }
 }

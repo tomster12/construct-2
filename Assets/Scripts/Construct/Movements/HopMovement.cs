@@ -18,15 +18,15 @@ public class HopMovement : ConstructMovement
         Debug.Log("HopMovement.Move(dir) not implemented.");
     }
 
-    public override void SetControlling(bool isControlling)
+    public override void SetControlled(bool isControlled)
     {
-        if (!CanSetControlling(isControlling)) throw new System.Exception("Cannot SetControlling(true) when CanControl is false.");
-        IsControlling = true;
-        if (isControlling) part.SetController(this);
+        if (!CanSetControlled(isControlled)) throw new System.Exception("Cannot SetControlling(true) when CanControl is false.");
+        isControlled = true;
+        if (isControlled) part.SetController(this);
         else part.SetController(null);
     }
 
-    public override bool CanSetControlling(bool isControlling)
+    public override bool CanSetControlled(bool isControlled)
     {
         return !IsBlocking;
     }

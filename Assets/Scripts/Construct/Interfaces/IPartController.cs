@@ -1,8 +1,6 @@
-using UnityEngine;
-
-public abstract class ConstructShape : MonoBehaviour, IPartController
+public interface IPartController
 {
-    public virtual bool isControlled { get; protected set; }
+    public abstract bool isControlled { get; }
     public abstract bool IsBlocking { get; }
 
     public abstract void SetControlled(bool isControlled);

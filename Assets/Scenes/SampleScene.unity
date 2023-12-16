@@ -177,7 +177,6 @@ GameObject:
   m_Component:
   - component: {fileID: 132081269}
   - component: {fileID: 132081268}
-  - component: {fileID: 132081270}
   m_Layer: 0
   m_Name: Player Controller
   m_TagString: Untagged
@@ -197,8 +196,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39fe957800460a2499538dea19207827, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  camParent: {fileID: 1435018595}
+  cam: {fileID: 963194227}
   construct: {fileID: 68126941}
   corePart: {fileID: 795797505}
+  constructMoveSpeed: 10
+  camZoomAcc: 1000
+  camZoomDrag: 0.98
+  camZoomVelMax: 10
+  camOffsetBoundsMult: {x: 1.5, y: 0.7, z: -1}
+  camOffsetAdditional: {x: 0.5, y: 0, z: 0}
+  camAimSpeed: 250
 --- !u!4 &132081269
 Transform:
   m_ObjectHideFlags: 0
@@ -214,25 +222,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &132081270
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 132081267}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ad8554671a532fd4f8ef03fb0a4a0f26, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetCameraParent: {fileID: 1435018595}
-  targetCamera: {fileID: 963194227}
-  zoomAcceleration: 600
-  zoomDrag: 0.92
-  zoomVelocityMax: 6
-  boundsOffsetMult: {x: 1, y: 0.5, z: -1}
-  additionalOffset: {x: 0.5, y: 0, z: 0}
 --- !u!1 &486502118
 GameObject:
   m_ObjectHideFlags: 0

@@ -22,7 +22,6 @@ public class ConstructPart : MonoBehaviour
     private void Awake()
     {
         WO = GetComponent<WorldObject>();
-
     }
 
     public void OnJoinConstruct(Construct construct)
@@ -41,6 +40,7 @@ public class ConstructPart : MonoBehaviour
         currentConstruct = null;
     }
 
+    // TODO: Perhaps remove this and move to some shared component cache?
     public T GetPartComponent<T>() where T : PartComponent => GetComponent<T>();
 
     public void SetController(IPartController controller)

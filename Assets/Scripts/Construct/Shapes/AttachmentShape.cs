@@ -8,9 +8,9 @@ public class AttachmentShape : ConstructShape
     public ConstructPart AttachingPart { get; private set; }
     public ConstructPart AttacheePart { get; private set; }
 
-    public override void SetControlling(bool isControlling)
+    public override void SetControlled(bool isControlled)
     {
-        IsControlling = isControlling;
+        isControlled = isControlled;
     }
 
     public void SetParts(ConstructPart attachingPart, ConstructPart attacheePart)
@@ -19,11 +19,11 @@ public class AttachmentShape : ConstructShape
         AttacheePart = attacheePart;
     }
 
-    public override bool CanSetControlling(bool isControlling)
+    public override bool CanSetControlled(bool isControlled)
     {
         if (IsBlocking) return false;
-        if (isControlling && (IsControlling || (AttachingPart.IsControlled || AttacheePart.IsControlled))) throw new System.Exception("Cannot SetControlling(true) when already controlled.");
-        else if (!isControlling && !IsControlling) throw new System.Exception("Cannot SetControlling(false) when not controlled.");
+        if (isControlled && (isControlled || (AttachingPart.IsControlled || AttacheePart.IsControlled))) throw new System.Exception("Cannot SetControlling(true) when already controlled.");
+        else if (!isControlled && !isControlled) throw new System.Exception("Cannot SetControlling(false) when not controlled.");
         return true;
     }
 }

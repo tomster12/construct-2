@@ -13,5 +13,4 @@ public abstract class ConstructAction : MonoBehaviour
 
     public abstract void UseDown();
     public abstract void UseUp();
-    public abstract void Visualise();
 }

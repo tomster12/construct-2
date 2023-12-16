@@ -36,8 +36,8 @@ public class AttacherComponent : PartComponent
         attachmentShape = gameObject.AddComponent<AttachmentShape>();
         attachmentShape.SetParts(attacherPart, attachee.AttacheePart);
         yield return attacherMovement.Attach(attachee);
-        attacherMovement.SetControlling(false);
-        attachmentShape.SetControlling(true);
+        attacherMovement.SetControlled(false);
+        attachmentShape.SetControlled(true);
         attacherPart.Construct.PickBestMovement();
 
         IsTransitioning = false;
@@ -50,8 +50,8 @@ public class AttacherComponent : PartComponent
 
         IsTransitioning = true;
 
-        attachmentShape.SetControlling(false);
-        attacherMovement.SetControlling(true);
+        attachmentShape.SetControlled(false);
+        attacherMovement.SetControlled(true);
         yield return attacherMovement.Detach();
         Destroy(attachmentShape);
         attacherPart.Construct.PickBestMovement();
@@ -72,7 +72,7 @@ public class AttacherComponent : PartComponent
     {
         if (IsTransitioning) return false;
         if (attacherMovement == null) return false;
-        return attacherMovement.CanDetach() && attachmentShape != null && attachmentShape.CanSetControlling(false);
+        return attacherMovement.CanDetach() && attachmentShape != null && attachmentShape.CanSetControlled(false);
     }
 
     private void OnJoinConstruct(Construct construct)
@@ -87,6 +87,7 @@ public class AttacherComponent : PartComponent
 
     private void OnPartChange()
     {
+        // TODO: Is this needed
         attacherMovement = (IAttacherMovement)attacherPart.Movement;
     }
 

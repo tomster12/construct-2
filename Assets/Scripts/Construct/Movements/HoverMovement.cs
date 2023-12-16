@@ -10,17 +10,17 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
 
     public override void Aim(Vector3 pos)
     {
-        // TODO: Aim
+        // TODO: Implement aim
     }
 
     public override void Move(Vector3 dir)
     {
-        // TODO: Move
+        // TODO: Implement move
     }
 
     public IEnumerator Attach(AttacheeComponent atachee)
     {
-        // TODO: Attach
+        // TODO: Implement attach
         IsAttachTransitioning = true;
         yield return new WaitForSeconds(1f);
         IsAttachTransitioning = false;
@@ -28,25 +28,25 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
 
     public IEnumerator Detach()
     {
-        // TODO: Detach
+        // TODO: Implement detach
         IsAttachTransitioning = true;
         yield return new WaitForSeconds(1f);
         IsAttachTransitioning = false;
     }
 
-    public bool CanAttach(AttacheeComponent attachee) => CanSetControlling(true);
+    public bool CanAttach(AttacheeComponent attachee) => CanSetControlled(true);
 
-    public bool CanDetach() => CanSetControlling(false);
+    public bool CanDetach() => CanSetControlled(false);
 
-    public override void SetControlling(bool isControlling)
+    public override void SetControlled(bool isControlled)
     {
-        if (!CanSetControlling(isControlling)) throw new System.Exception("Cannot SetControlling(true) when CanControl is false.");
-        IsControlling = true;
-        if (isControlling) part.SetController(this);
+        if (!CanSetControlled(isControlled)) throw new System.Exception("Cannot SetControlling(true) when CanControl is false.");
+        isControlled = true;
+        if (isControlled) part.SetController(this);
         else part.SetController(null);
     }
 
-    public override bool CanSetControlling(bool isControlling)
+    public override bool CanSetControlled(bool isControlled)
     {
         return !IsBlocking;
     }
