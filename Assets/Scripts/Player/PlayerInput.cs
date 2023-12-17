@@ -2,9 +2,10 @@ public enum PlayerInputType { MOUSE, KEYBOARD };
 
 public class PlayerInput
 {
-    public PlayerInputType Type { get; private set; }
     private int mouseButton;
     private string key;
+
+    public PlayerInputType Type { get; private set; }
 
     private PlayerInput(int mouseButton)
     {

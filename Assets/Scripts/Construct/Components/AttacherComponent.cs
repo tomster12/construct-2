@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 [RequireComponent(typeof(ToggleAttachAction))]
 [RequireComponent(typeof(ConstructPart))]
@@ -18,9 +19,9 @@ public class AttacherComponent : PartComponent
         toggleAttachAction = GetComponent<ToggleAttachAction>();
         attacherPart = GetComponent<ConstructPart>();
         attacherMovement = (IAttacherMovement)attacherPart.Movement;
+
         attacherPart.OnJoinConstructEvent += OnJoinConstruct;
         attacherPart.OnLeaveConstructEvent += OnLeaveConstruct;
-        attacherPart.OnPartChangeEvent += OnPartChange;
     }
 
     public void Attach(AttacheeComponent attachee) => StartCoroutine(IEAttach(attachee));
@@ -35,10 +36,11 @@ public class AttacherComponent : PartComponent
 
         attachmentShape = gameObject.AddComponent<AttachmentShape>();
         attachmentShape.SetParts(attacherPart, attachee.AttacheePart);
+
         yield return attacherMovement.Attach(attachee);
-        attacherMovement.SetControlled(false);
-        attachmentShape.SetControlled(true);
-        attacherPart.Construct.PickBestMovement();
+        attacherMovement.UnsetControlling();
+        attachmentShape.SetControlling();
+        attacherPart.Construct.AutoSetControllingMovement();
 
         IsTransitioning = false;
         IsAttached = true;
@@ -50,11 +52,12 @@ public class AttacherComponent : PartComponent
 
         IsTransitioning = true;
 
-        attachmentShape.SetControlled(false);
-        attacherMovement.SetControlled(true);
+        attachmentShape.UnsetControlling();
+        attacherMovement.SetControlling();
         yield return attacherMovement.Detach();
+        attacherPart.Construct.AutoSetControllingMovement();
+
         Destroy(attachmentShape);
-        attacherPart.Construct.PickBestMovement();
 
         IsTransitioning = false;
         IsAttached = false;
@@ -72,7 +75,7 @@ public class AttacherComponent : PartComponent
     {
         if (IsTransitioning) return false;
         if (attacherMovement == null) return false;
-        return attacherMovement.CanDetach() && attachmentShape != null && attachmentShape.CanSetControlled(false);
+        return attacherMovement.CanDetach() && attachmentShape != null && attachmentShape.CanUnsetControlling();
     }
 
     private void OnJoinConstruct(Construct construct)
@@ -83,12 +86,6 @@ public class AttacherComponent : PartComponent
     private void OnLeaveConstruct()
     {
         attacherPart.Construct.DeregisterAction(toggleAttachAction);
-    }
-
-    private void OnPartChange()
-    {
-        // TODO: Is this needed
-        attacherMovement = (IAttacherMovement)attacherPart.Movement;
     }
 
     private void OnDrawGizmos()

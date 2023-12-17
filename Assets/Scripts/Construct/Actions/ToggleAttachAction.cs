@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class ToggleAttachAction : ConstructAction
 {
-    public override string ActionName => "Attach";
+    public override string ActionName => "Mouse Skill 1"; // TODO: Some automatic way of binding skills
     public override ActionUseType UseType => ActionUseType.SINGLE;
     public override bool CanUse => base.CanUse && (CanAttach || CanDetach);
     public bool CanAttach => aimedAtachee != null && attacher.CanAttach(aimedAtachee);
@@ -22,17 +22,18 @@ public class ToggleAttachAction : ConstructAction
     private void Update()
     {
         raycaster.Update();
-        if (raycaster.Hit) aimedAtachee = raycaster.HitTransform.GetComponent<AttacheeComponent>();
+        if (raycaster.HitConstructPart) aimedAtachee = raycaster.HitConstructPart.GetPartComponent<AttacheeComponent>();
+        else aimedAtachee = null;
     }
 
-    public override void UseDown()
+    public override void InputDown()
     {
         if (!CanUse) return;
         if (attacher.IsAttached && CanDetach) attacher.Detach();
         else if (CanAttach) attacher.Attach(aimedAtachee);
     }
 
-    public override void UseUp() { }
+    public override void InputUp() { }
 
     private void OnDrawGizmos()
     {

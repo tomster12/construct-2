@@ -1,8 +1,10 @@
 public interface IPartController
 {
-    public abstract bool isControlled { get; }
+    public abstract bool IsControlling { get; }
     public abstract bool IsBlocking { get; }
 
-    public abstract void SetControlled(bool isControlled);
-    public abstract bool CanSetControlled(bool isControlled);
+    public abstract void SetControlling();
+    public abstract void UnsetControlling();
+    public abstract bool CanSetControlling();
+    public abstract bool CanUnsetControlling();
 }

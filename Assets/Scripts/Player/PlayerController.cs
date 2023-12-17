@@ -5,13 +5,18 @@ public class PlayerController : MonoBehaviour
 {
     private static readonly Dictionary<PlayerInput, string> ACTION_INPUTS = new Dictionary<PlayerInput, string>()
     {
-        { PlayerInput.MouseInput(0), "Attach" }
+        { PlayerInput.MouseInput(0), "Mouse Skill 1" },
+        { PlayerInput.MouseInput(1), "Mouse Skill 2" },
+        { PlayerInput.KeyInput("1"), "Skill 1" },
+        { PlayerInput.KeyInput("2"), "Skill 2" },
+        { PlayerInput.KeyInput("3"), "Skill 3" },
+        { PlayerInput.KeyInput("4"), "Skill 4" },
     };
 
     [SerializeField] private Transform camParent;
     [SerializeField] private Camera cam;
-    [SerializeField] Construct construct;
-    [SerializeField] ConstructPart corePart;
+    [SerializeField] private Construct construct;
+    [SerializeField] private ConstructPart corePart;
 
     [Header("Config")]
     [SerializeField] private float constructMoveSpeed = 10.0f;
@@ -42,8 +47,7 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         HandleInput();
-        HandleActions();
-        UpdateCam();
+        UpdateCamDynamics();
     }
 
     private void HandleInput()
@@ -59,25 +63,16 @@ public class PlayerController : MonoBehaviour
 
         // Update aiming
         aimInput = new Vector3(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"), 0.0f);
-    }
 
-    private void HandleActions()
-    {
-        // Check input for each action
+        // Update actions
         foreach (KeyValuePair<PlayerInput, string> actionInput in ACTION_INPUTS)
         {
-            if (actionInput.Key.GetDown())
-            {
-                construct.UseActionDown(actionInput.Value);
-            }
-            else if (actionInput.Key.GetUp())
-            {
-                construct.UseActionUp(actionInput.Value);
-            }
+            if (actionInput.Key.GetDown()) construct.ActionInputDown(actionInput.Value);
+            else if (actionInput.Key.GetUp()) construct.ActionInputUp(actionInput.Value);
         }
     }
 
-    private void UpdateCam()
+    private void UpdateCamDynamics()
     {
         // Update cam zoom
         camZoomVel = Mathf.Clamp(camZoomVel, -camZoomVelMax, camZoomVelMax);
@@ -99,10 +94,10 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        FixedHandleMovement();
+        FixedUpdateConstruct();
     }
 
-    private void FixedHandleMovement()
+    private void FixedUpdateConstruct()
     {
         construct.Move(movementInput * Time.fixedDeltaTime * constructMoveSpeed);
         construct.Aim(raycaster.HitPoint);
@@ -119,6 +114,6 @@ public class PlayerController : MonoBehaviour
         camTarget = targetWO;
         camOffsetBounds = targetWO.XZMaxExtent * camOffsetBoundsMult + camOffsetAdditional;
         camZoomDistance = targetWO.XZMaxExtent * 15.0f;
-        UpdateCam();
+        UpdateCamDynamics();
     }
 }

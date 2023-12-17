@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class HopMovement : ConstructMovement
@@ -18,15 +17,26 @@ public class HopMovement : ConstructMovement
         Debug.Log("HopMovement.Move(dir) not implemented.");
     }
 
-    public override void SetControlled(bool isControlled)
+    public override void SetControlling()
     {
-        if (!CanSetControlled(isControlled)) throw new System.Exception("Cannot SetControlling(true) when CanControl is false.");
-        isControlled = true;
-        if (isControlled) part.SetController(this);
-        else part.SetController(null);
+        if (!CanSetControlling()) throw new System.Exception("Cannot SetControlling(true) when already controlled.");
+        IsControlling = true;
+        part.SetController(this);
     }
 
-    public override bool CanSetControlled(bool isControlled)
+    public override void UnsetControlling()
+    {
+        if (!CanUnsetControlling()) throw new System.Exception("Cannot UnsetControlling(false) when not controlled.");
+        IsControlling = false;
+        part.UnsetController();
+    }
+
+    public override bool CanSetControlling()
+    {
+        return !IsBlocking;
+    }
+
+    public override bool CanUnsetControlling()
     {
         return !IsBlocking;
     }

@@ -1,15 +1,25 @@
 
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
-// TODO: Expand this with component cache.
 public class WorldObject : MonoBehaviour
 {
-    public Bounds Bounds { get; private set; }
+    private Dictionary<Type, Component> componentCache = new Dictionary<Type, Component>();
+
+    public Rigidbody RB => GetCachedComponent<Rigidbody>();
+    public Bounds Bounds => GetCachedComponent<Collider>().bounds;
+
     public float MaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.y, Bounds.extents.z);
     public float XZMaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.z);
 
-    private void Awake()
+    public T GetCachedComponent<T>() where T : Component
     {
-        Bounds = GetComponent<Collider>().bounds;
+        Type type = typeof(T);
+        if (!componentCache.ContainsKey(type))
+        {
+            componentCache[type] = GetComponent<T>();
+        }
+        return (T)componentCache[type];
     }
 }

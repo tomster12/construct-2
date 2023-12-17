@@ -34,19 +34,30 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
         IsAttachTransitioning = false;
     }
 
-    public bool CanAttach(AttacheeComponent attachee) => CanSetControlled(true);
+    public bool CanAttach(AttacheeComponent attachee) => CanSetControlling();
 
-    public bool CanDetach() => CanSetControlled(false);
+    public bool CanDetach() => CanUnsetControlling();
 
-    public override void SetControlled(bool isControlled)
+    public override void SetControlling()
     {
-        if (!CanSetControlled(isControlled)) throw new System.Exception("Cannot SetControlling(true) when CanControl is false.");
-        isControlled = true;
-        if (isControlled) part.SetController(this);
-        else part.SetController(null);
+        if (!CanSetControlling()) throw new System.Exception("Cannot SetControlling(true) when already controlled.");
+        IsControlling = true;
+        part.SetController(this);
     }
 
-    public override bool CanSetControlled(bool isControlled)
+    public override void UnsetControlling()
+    {
+        if (!CanUnsetControlling()) throw new System.Exception("Cannot UnsetControlling(false) when not controlled.");
+        IsControlling = false;
+        part.UnsetController();
+    }
+
+    public override bool CanSetControlling()
+    {
+        return !IsBlocking;
+    }
+
+    public override bool CanUnsetControlling()
     {
         return !IsBlocking;
     }

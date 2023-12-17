@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(WorldObject))]
@@ -7,21 +8,38 @@ public class ConstructPart : MonoBehaviour
     [SerializeField] private ConstructMovement inherentMovement;
     private Construct currentConstruct;
     private IPartController currentController;
-
-    public Action<Construct> OnJoinConstructEvent = delegate { };
-    public Action OnLeaveConstructEvent = delegate { };
-    public Action OnPartChangeEvent = delegate { };
+    private Dictionary<Type, Component> partComponents = new Dictionary<Type, Component>();
 
     public WorldObject WO { get; private set; }
-    public bool IsConstructed => currentConstruct != null;
-    public bool IsControlled => currentController != null;
     public ConstructMovement Movement => inherentMovement;
     public IPartController CurrentController => currentController;
     public Construct Construct => currentConstruct;
 
+    public Action<Construct> OnJoinConstructEvent = delegate { };
+    public Action OnLeaveConstructEvent = delegate { };
+
+    public bool IsConstructed => currentConstruct != null;
+    public bool IsControlled => currentController != null;
+
     private void Awake()
     {
         WO = GetComponent<WorldObject>();
+
+        // Cache all part components
+        foreach (PartComponent component in GetComponents<PartComponent>())
+        {
+            partComponents[component.GetType()] = component;
+        }
+    }
+
+    public T GetPartComponent<T>() where T : PartComponent
+    {
+        Type type = typeof(T);
+        if (partComponents.ContainsKey(type))
+        {
+            return partComponents[type] as T;
+        }
+        return null;
     }
 
     public void OnJoinConstruct(Construct construct)
@@ -40,12 +58,16 @@ public class ConstructPart : MonoBehaviour
         currentConstruct = null;
     }
 
-    // TODO: Perhaps remove this and move to some shared component cache?
-    public T GetPartComponent<T>() where T : PartComponent => GetComponent<T>();
-
     public void SetController(IPartController controller)
     {
-        if (controller != null && currentController != null) throw new Exception("Cannot SetController(controller) when already have a controller.");
+        if (controller == null) throw new Exception("Cannot SetController(null).");
+        if (currentController != null) throw new Exception("Cannot SetController(controller) when already have a controller.");
         currentController = controller;
+    }
+
+    public void UnsetController()
+    {
+        if (currentController == null) throw new Exception("Cannot UnsetController() when not controlled.");
+        currentController = null;
     }
 }
