@@ -3,6 +3,14 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    public void SetTarget(WorldObject targetWO)
+    {
+        camTarget = targetWO;
+        camOffsetBounds = targetWO.XZMaxExtent * camOffsetBoundsMult + camOffsetAdditional;
+        camZoomDistance = targetWO.XZMaxExtent * 15.0f;
+        UpdateCamDynamics();
+    }
+
     private static readonly Dictionary<PlayerInput, string> ACTION_INPUTS = new Dictionary<PlayerInput, string>()
     {
         { PlayerInput.MouseInput(0), "Mouse Skill 1" },
@@ -27,7 +35,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Vector3 camOffsetAdditional = new Vector3(1.0f, 0.0f, 0.0f);
     [SerializeField] private float camAimSpeed = 40.0f;
 
-    private Raycaster raycaster = new Raycaster();
+    private Raycaster raycaster;
     private Vector3 movementInput;
     private Vector3 aimInput;
     private WorldObject camTarget;
@@ -39,7 +47,9 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {
         cam.transform.parent = camParent;
-        construct.SetAndAddCore(corePart);
+        cam.transform.localPosition = Vector3.zero;
+        raycaster = new Raycaster(cam);
+        construct.InitCore(corePart);
         SetTarget(corePart.WO);
         LockMouse();
     }
@@ -107,13 +117,5 @@ public class PlayerController : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-    }
-
-    public void SetTarget(WorldObject targetWO)
-    {
-        camTarget = targetWO;
-        camOffsetBounds = targetWO.XZMaxExtent * camOffsetBoundsMult + camOffsetAdditional;
-        camZoomDistance = targetWO.XZMaxExtent * 15.0f;
-        UpdateCamDynamics();
     }
 }

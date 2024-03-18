@@ -1,15 +1,11 @@
-
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class WorldObject : MonoBehaviour
 {
-    private Dictionary<Type, Component> componentCache = new Dictionary<Type, Component>();
-
     public Rigidbody RB => GetCachedComponent<Rigidbody>();
     public Bounds Bounds => GetCachedComponent<Collider>().bounds;
-
     public float MaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.y, Bounds.extents.z);
     public float XZMaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.z);
 
@@ -22,4 +18,6 @@ public class WorldObject : MonoBehaviour
         }
         return (T)componentCache[type];
     }
+
+    private Dictionary<Type, Component> componentCache = new Dictionary<Type, Component>();
 }

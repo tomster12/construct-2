@@ -5,32 +5,14 @@ using UnityEngine;
 [RequireComponent(typeof(WorldObject))]
 public class ConstructPart : MonoBehaviour
 {
-    [SerializeField] private ConstructMovement inherentMovement;
-    private Construct currentConstruct;
-    private IPartController currentController;
-    private Dictionary<Type, Component> partComponents = new Dictionary<Type, Component>();
-
+    public Action<Construct> OnJoinConstructEvent = delegate { };
+    public Action OnLeaveConstructEvent = delegate { };
     public WorldObject WO { get; private set; }
     public ConstructMovement Movement => inherentMovement;
     public IPartController CurrentController => currentController;
     public Construct Construct => currentConstruct;
-
-    public Action<Construct> OnJoinConstructEvent = delegate { };
-    public Action OnLeaveConstructEvent = delegate { };
-
     public bool IsConstructed => currentConstruct != null;
     public bool IsControlled => currentController != null;
-
-    private void Awake()
-    {
-        WO = GetComponent<WorldObject>();
-
-        // Cache all part components
-        foreach (PartComponent component in GetComponents<PartComponent>())
-        {
-            partComponents[component.GetType()] = component;
-        }
-    }
 
     public T GetPartComponent<T>() where T : PartComponent
     {
@@ -69,5 +51,21 @@ public class ConstructPart : MonoBehaviour
     {
         if (currentController == null) throw new Exception("Cannot UnsetController() when not controlled.");
         currentController = null;
+    }
+
+    [SerializeField] private ConstructMovement inherentMovement;
+    private Dictionary<Type, Component> partComponents = new Dictionary<Type, Component>();
+    private Construct currentConstruct;
+    private IPartController currentController;
+
+    private void Awake()
+    {
+        WO = GetComponent<WorldObject>();
+
+        // Cache all part components
+        foreach (PartComponent component in GetComponents<PartComponent>())
+        {
+            partComponents[component.GetType()] = component;
+        }
     }
 }

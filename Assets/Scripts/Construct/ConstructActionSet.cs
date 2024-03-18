@@ -3,14 +3,12 @@ using System.Collections.Generic;
 
 public class ConstructActionSet
 {
-    private Dictionary<string, ConstructAction> actions = new Dictionary<string, ConstructAction>();
-
-    public Construct Construct { get; private set; }
-
     public ConstructActionSet(Construct construct)
     {
         Construct = construct;
     }
+
+    public Construct Construct { get; private set; }
 
     public ConstructAction ActionInputDown(string actionName)
     {
@@ -48,4 +46,6 @@ public class ConstructActionSet
         action.SetActionSet(null);
         return true;
     }
+
+    private Dictionary<string, ConstructAction> actions = new Dictionary<string, ConstructAction>();
 }

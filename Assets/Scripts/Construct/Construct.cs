@@ -4,17 +4,6 @@ using UnityEngine;
 
 public class Construct : MonoBehaviour
 {
-    private HashSet<ConstructPart> parts = new HashSet<ConstructPart>();
-    private HashSet<ConstructMovement> movements = new HashSet<ConstructMovement>();
-    private ConstructActionSet actionSet;
-    private ConstructMovement controllingMovement;
-    private ConstructPart corePart;
-
-    private void Awake()
-    {
-        actionSet = new ConstructActionSet(this);
-    }
-
     public void Move(Vector3 dir)
     {
         if (controllingMovement != null) controllingMovement.Move(dir);
@@ -74,7 +63,7 @@ public class Construct : MonoBehaviour
 
     public void DeregisterAction(ConstructAction action) => actionSet.DeregisterAction(action);
 
-    public void SetAndAddCore(ConstructPart corePart)
+    public void InitCore(ConstructPart corePart)
     {
         if (this.corePart != null) throw new Exception("Cannot SetCore() when already have a core.");
         this.corePart = corePart;
@@ -82,24 +71,38 @@ public class Construct : MonoBehaviour
         AutoSetControllingMovement();
     }
 
+    private HashSet<ConstructPart> parts = new HashSet<ConstructPart>();
+    private HashSet<ConstructMovement> movements = new HashSet<ConstructMovement>();
+    private ConstructActionSet actionSet;
+    private ConstructMovement controllingMovement;
+    private ConstructPart corePart;
+
+    private void Awake()
+    {
+        actionSet = new ConstructActionSet(this);
+    }
+
     private void SetControllingMovement(ConstructMovement movement)
     {
         if (movement == null) throw new Exception("Cannot SetControllingMovement(null).");
         if (!movements.Contains(movement)) throw new Exception("Cannot SetControllingMovement(movement) when movement not registered.");
         if (movement.IsControlling) throw new Exception("Cannot SetControllingMovement(movement) when movement already controlling.");
+
         if (controllingMovement != null)
         {
             if (!controllingMovement.CanUnsetControlling()) throw new Exception("Cannot SetControllingMovement(movement) when controlled movement cannot be unset.");
             controllingMovement.UnsetControlling();
         }
-        controllingMovement = movement;
+
         controllingMovement.SetControlling();
+        controllingMovement = movement;
     }
 
     private void UnsetControllingMovement()
     {
         if (controllingMovement == null) throw new Exception("Cannot UnSetControllingMovement() when no controlled movement.");
         if (!controllingMovement.CanUnsetControlling()) throw new Exception("Cannot UnSetControllingMovement() when controlled movement cannot be unset.");
+
         controllingMovement.UnsetControlling();
         controllingMovement = null;
     }
