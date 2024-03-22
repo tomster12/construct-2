@@ -10,22 +10,6 @@ public class ToggleAttachAction : ConstructAction
     public override bool IsActive => attacher.IsTransitioning;
     public override bool IsCooldown => false;
 
-    private Raycaster raycaster = new Raycaster();
-    private AttacherComponent attacher;
-    private AttacheeComponent aimedAtachee;
-
-    private void Awake()
-    {
-        attacher = GetComponent<AttacherComponent>();
-    }
-
-    private void Update()
-    {
-        raycaster.Update();
-        if (raycaster.HitConstructPart) aimedAtachee = raycaster.HitConstructPart.GetPartComponent<AttacheeComponent>();
-        else aimedAtachee = null;
-    }
-
     public override void InputDown()
     {
         if (!CanUse) return;
@@ -33,10 +17,29 @@ public class ToggleAttachAction : ConstructAction
         else if (CanAttach) attacher.Attach(aimedAtachee);
     }
 
-    public override void InputUp() { }
+    public override void InputUp()
+    { }
+
+    private Raycaster raycaster;
+    private AttacherComponent attacher;
+    private AttacheeComponent aimedAtachee;
+
+    private void Awake()
+    {
+        attacher = GetComponent<AttacherComponent>();
+        raycaster = new Raycaster(Camera.main); // TODO: Get from attacher.part.contruct...
+    }
+
+    private void Update()
+    {
+        raycaster.Update();
+        aimedAtachee = raycaster.HitConstructPart?.GetPartComponent<AttacheeComponent>();
+    }
 
     private void OnDrawGizmos()
     {
+        if (raycaster == null) return;
+
         // TODO: Remove this debug GUI
         if (aimedAtachee != null)
         {

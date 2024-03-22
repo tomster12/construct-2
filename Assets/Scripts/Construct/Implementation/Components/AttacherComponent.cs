@@ -2,7 +2,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-[RequireComponent(typeof(ToggleAttachAction))]
 [RequireComponent(typeof(ConstructPart))]
 public class AttacherComponent : PartComponent
 {
@@ -16,9 +15,9 @@ public class AttacherComponent : PartComponent
 
     private void Awake()
     {
-        toggleAttachAction = GetComponent<ToggleAttachAction>();
         attacherPart = GetComponent<ConstructPart>();
-        attacherMovement = (IAttacherMovement)attacherPart.Movement;
+        toggleAttachAction = gameObject.AddComponent<ToggleAttachAction>();
+        attacherMovement = (IAttacherMovement)attacherPart.InherentMovement;
 
         attacherPart.OnJoinConstructEvent += OnJoinConstruct;
         attacherPart.OnLeaveConstructEvent += OnLeaveConstruct;
@@ -40,7 +39,7 @@ public class AttacherComponent : PartComponent
         yield return attacherMovement.Attach(attachee);
         attacherMovement.UnsetControlling();
         attachmentShape.SetControlling();
-        attacherPart.Construct.AutoSetControllingMovement();
+        attacherPart.Construct.UpdateControllingMovement();
 
         IsTransitioning = false;
         IsAttached = true;
@@ -55,7 +54,7 @@ public class AttacherComponent : PartComponent
         attachmentShape.UnsetControlling();
         attacherMovement.SetControlling();
         yield return attacherMovement.Detach();
-        attacherPart.Construct.AutoSetControllingMovement();
+        attacherPart.Construct.UpdateControllingMovement();
 
         Destroy(attachmentShape);
 

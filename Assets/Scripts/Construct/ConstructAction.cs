@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 public enum ActionUseType
 { SINGLE, CONTINUOUS, CHANNELED }
@@ -19,7 +20,7 @@ public abstract class ConstructAction : MonoBehaviour
 
     public void SetActionSet(ConstructActionSet actionSet)
     {
-        if (this.actionSet != null) throw new Exception("Cannot SetActionSet(actionSet) already assigned!");
+        if (this.actionSet != null) throw new Exception("Cannot SetActionSet(actionSet), already assigned!");
         this.actionSet = actionSet;
     }
 

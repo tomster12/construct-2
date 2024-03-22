@@ -8,7 +8,7 @@ public class ConstructPart : MonoBehaviour
     public Action<Construct> OnJoinConstructEvent = delegate { };
     public Action OnLeaveConstructEvent = delegate { };
     public WorldObject WO { get; private set; }
-    public ConstructMovement Movement => inherentMovement;
+    public IConstructMovement InherentMovement => inherentMovement;
     public IPartController CurrentController => currentController;
     public Construct Construct => currentConstruct;
     public bool IsConstructed => currentConstruct != null;
@@ -53,7 +53,7 @@ public class ConstructPart : MonoBehaviour
         currentController = null;
     }
 
-    [SerializeField] private ConstructMovement inherentMovement;
+    [SerializeReference] private IConstructMovement inherentMovement;
     private Dictionary<Type, Component> partComponents = new Dictionary<Type, Component>();
     private Construct currentConstruct;
     private IPartController currentController;

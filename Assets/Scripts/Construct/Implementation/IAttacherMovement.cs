@@ -1,6 +1,6 @@
 using System.Collections;
 
-internal interface IAttacherMovement : IPartController
+internal interface IAttacherMovement : IConstructMovement
 {
     IEnumerator Attach(AttacheeComponent atachee);
 

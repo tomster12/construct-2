@@ -1,13 +1,13 @@
 public interface IPartController
 {
-    public abstract bool IsControlling { get; }
-    public abstract bool IsBlocking { get; }
+    public bool IsControlling { get; }
+    public bool CanTransition { get; }
 
-    public abstract void SetControlling();
+    public void SetControlling();
 
-    public abstract void UnsetControlling();
+    public void UnsetControlling();
 
-    public abstract bool CanSetControlling();
+    public bool CanSetControlling();
 
-    public abstract bool CanUnsetControlling();
+    public bool CanUnsetControlling();
 }

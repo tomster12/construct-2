@@ -1,26 +1,27 @@
 using System.Collections;
 using UnityEngine;
 
-public class HoverMovement : ConstructMovement, IAttacherMovement
+public class HoverMovement : MonoBehaviour, IAttacherMovement
 {
-    [SerializeField] private ConstructPart part;
-
-    public override bool IsBlocking => IsAttachTransitioning;
+    public bool IsControlling { get; private set; }
+    public bool CanTransition => !IsAttachTransitioning;
     public bool IsAttachTransitioning { get; private set; }
 
-    public override void Aim(Vector3 pos)
+    public void Aim(Vector3 pos)
     {
-        // TODO: Implement aim
+        // TODO: Implement
+        Debug.Log("HopMovement.Aim(pos) not implemented.");
     }
 
-    public override void Move(Vector3 dir)
+    public void Move(Vector3 dir)
     {
-        // TODO: Implement move
+        // TODO: Implement
+        Debug.Log("HopMovement.Move(dir) not implemented.");
     }
 
     public IEnumerator Attach(AttacheeComponent atachee)
     {
-        // TODO: Implement attach
+        // TODO: Implement
         IsAttachTransitioning = true;
         yield return new WaitForSeconds(1f);
         IsAttachTransitioning = false;
@@ -28,7 +29,7 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
 
     public IEnumerator Detach()
     {
-        // TODO: Implement detach
+        // TODO: Implement
         IsAttachTransitioning = true;
         yield return new WaitForSeconds(1f);
         IsAttachTransitioning = false;
@@ -38,27 +39,23 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
 
     public bool CanDetach() => CanUnsetControlling();
 
-    public override void SetControlling()
+    public void SetControlling()
     {
         if (!CanSetControlling()) throw new System.Exception("Cannot SetControlling(true) when already controlled.");
         IsControlling = true;
         part.SetController(this);
     }
 
-    public override void UnsetControlling()
+    public void UnsetControlling()
     {
         if (!CanUnsetControlling()) throw new System.Exception("Cannot UnsetControlling(false) when not controlled.");
         IsControlling = false;
         part.UnsetController();
     }
 
-    public override bool CanSetControlling()
-    {
-        return !IsBlocking;
-    }
+    public bool CanSetControlling() => CanTransition;
 
-    public override bool CanUnsetControlling()
-    {
-        return !IsBlocking;
-    }
+    public bool CanUnsetControlling() => CanTransition;
+
+    [SerializeField] private ConstructPart part;
 }

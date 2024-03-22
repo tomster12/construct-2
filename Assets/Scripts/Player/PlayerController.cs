@@ -11,7 +11,7 @@ public class PlayerController : MonoBehaviour
         UpdateCamDynamics();
     }
 
-    private static readonly Dictionary<PlayerInput, string> ACTION_INPUTS = new Dictionary<PlayerInput, string>()
+    private static readonly Dictionary<PlayerInput, string> ACTION_INPUT_BINDINGS = new Dictionary<PlayerInput, string>()
     {
         { PlayerInput.MouseInput(0), "Mouse Skill 1" },
         { PlayerInput.MouseInput(1), "Mouse Skill 2" },
@@ -75,7 +75,7 @@ public class PlayerController : MonoBehaviour
         aimInput = new Vector3(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"), 0.0f);
 
         // Update actions
-        foreach (KeyValuePair<PlayerInput, string> actionInput in ACTION_INPUTS)
+        foreach (KeyValuePair<PlayerInput, string> actionInput in ACTION_INPUT_BINDINGS)
         {
             if (actionInput.Key.GetDown()) construct.ActionInputDown(actionInput.Value);
             else if (actionInput.Key.GetUp()) construct.ActionInputUp(actionInput.Value);

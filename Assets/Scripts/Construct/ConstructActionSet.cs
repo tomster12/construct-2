@@ -32,7 +32,8 @@ public class ConstructActionSet
 
     public bool RegisterAction(ConstructAction action)
     {
-        if (action.IsAssigned) throw new Exception("Cannot RegisterAction(action) already assigned!");
+        if (action.IsAssigned) return Utility.LogWarning("Cannot RegisterAction(action) already assigned!");
+        if (actions.ContainsKey(action.ActionName)) return Utility.LogWarning("Cannot RegisterAction(action), actionName already registered!");
         actions.Add(action.ActionName, action);
         action.SetActionSet(this);
         return true;
@@ -40,8 +41,8 @@ public class ConstructActionSet
 
     public bool DeregisterAction(ConstructAction action)
     {
-        if (!action.IsAssigned) throw new Exception("Cannot DeregisterAction(action) not assigned!");
-        if (!actions.ContainsKey(action.ActionName)) throw new Exception("Cannot DeregisterAction(action) not registered!");
+        if (!action.IsAssigned) return Utility.LogWarning("Cannot DeregisterAction(action) not assigned!");
+        if (!actions.ContainsKey(action.ActionName)) return Utility.LogWarning("Cannot DeregisterAction(action) not registered!");
         actions.Remove(action.ActionName);
         action.SetActionSet(null);
         return true;
