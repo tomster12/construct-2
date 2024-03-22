@@ -32,6 +32,7 @@ public class AttacherComponent : PartComponent
         attachmentShape.SetParts(Part, attachee.Part);
 
         yield return attacherMovement.Attach(attachee);
+
         attacherMovement.UnsetControlling();
         attachmentShape.SetControlling();
         Part.Construct.UpdateControllingMovement();
@@ -48,9 +49,10 @@ public class AttacherComponent : PartComponent
 
         attachmentShape.UnsetControlling();
         attacherMovement.SetControlling();
-        yield return attacherMovement.Detach();
-        Part.Construct.UpdateControllingMovement();
 
+        yield return attacherMovement.Detach();
+
+        Part.Construct.UpdateControllingMovement();
         Destroy(attachmentShape);
 
         IsTransitioning = false;

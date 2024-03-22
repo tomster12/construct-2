@@ -33,20 +33,20 @@ public class HoverMovement : MonoBehaviour, IAttacherMovement
         IsAttachTransitioning = false;
     }
 
-    public bool CanAttach(AttacheeComponent attachee) => CanSetControlling();
+    public bool CanAttach(AttacheeComponent attachee) => IsControlling && !attachee.Part.IsConstructed && CanUnsetControlling();
 
-    public bool CanDetach() => CanUnsetControlling();
+    public bool CanDetach() => !IsControlling && CanSetControlling();
 
     public void SetControlling()
     {
-        if (!CanSetControlling()) throw new System.Exception("Cannot SetControlling(true) when already controlled.");
+        if (!CanSetControlling()) throw new System.Exception("SetControlling(): !CanSetControlling().");
         IsControlling = true;
         part.SetController(this);
     }
 
     public void UnsetControlling()
     {
-        if (!CanUnsetControlling()) throw new System.Exception("Cannot UnsetControlling(false) when not controlled.");
+        if (!CanUnsetControlling()) throw new System.Exception("UnsetControlling(): !CanUnsetControlling.");
         IsControlling = false;
         part.UnsetController();
     }
