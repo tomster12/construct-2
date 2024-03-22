@@ -8,9 +8,13 @@ public class Construct : MonoBehaviour
 
     public void Aim(Vector3 pos) => controllingMovement?.Aim(pos);
 
-    public void ActionInputDown(string actionName) => actionSet.ActionInputDown(actionName);
+    public void SkillInputDown(int slot) => assignedSkills.ActionInputDown(slot);
 
-    public void ActionInputUp(string actionName) => actionSet.ActionInputUp(actionName);
+    public void SkillInputUp(int slot) => assignedSkills.ActionInputUp(slot);
+
+    public void ConstructionInputDown() => constructions[0].InputDown();
+
+    public void ConstructionInputUp() => constructions[0].InputUp();
 
     public void UpdateControllingMovement()
     {
@@ -40,22 +44,44 @@ public class Construct : MonoBehaviour
         part.OnleaveConstruct(this);
     }
 
-    public void RegisterPartMovement(IConstructMovement movement)
+    public void RegisterMovement(IConstructMovement movement)
     {
         if (movements.Contains(movement)) throw new Exception("Cannot RegisterPartMovement(movement), already registered!");
         movements.Add(movement);
     }
 
-    public void DeregisterPartMovement(IConstructMovement movement)
+    public void UnregisterMovement(IConstructMovement movement)
     {
-        if (!movements.Contains(movement)) throw new Exception("Cannot DeregisterPartMovement(movement), not registered!");
+        if (!movements.Contains(movement)) throw new Exception("Cannot UnregisterPartMovement(movement), not registered!");
         if (controllingMovement == movement) UnsetControllingMovement();
         movements.Remove(movement);
     }
 
-    public bool RegisterAction(ConstructAction action) => actionSet.RegisterAction(action);
+    public void RegisterSkill(Action action, int slot = -1)
+    {
+        if (skills.Contains(action)) throw new Exception("RegisterSkill(action): already registered.");
+        skills.Add(action);
+        if (assignedSkills.AvailableSlotCount > 0) assignedSkills.RegisterAction(action, slot);
+    }
 
-    public bool DeregisterAction(ConstructAction action) => actionSet.DeregisterAction(action);
+    public void UnregisterSkill(Action action)
+    {
+        if (!skills.Contains(action)) throw new Exception("UnregisterSkill(action): not registered.");
+        if (action.IsAssigned) assignedSkills.UnregisterAction(action);
+        skills.Remove(action);
+    }
+
+    public void RegisterConstruction(Action action)
+    {
+        if (constructions.Contains(action)) throw new Exception("RegisterConstructionAction(action): already registered.");
+        constructions.Add(action);
+    }
+
+    public void UnregisterConstruction(Action action)
+    {
+        if (!constructions.Contains(action)) throw new Exception("UnregisterConstructionAction(action): not registered.");
+        constructions.Remove(action);
+    }
 
     public void InitCore(ConstructPart corePart)
     {
@@ -67,14 +93,11 @@ public class Construct : MonoBehaviour
 
     private HashSet<ConstructPart> parts = new HashSet<ConstructPart>();
     private HashSet<IConstructMovement> movements = new HashSet<IConstructMovement>();
-    private ConstructActionSet actionSet;
+    private HashSet<Action> skills = new HashSet<Action>();
+    private List<Action> constructions = new List<Action>();
+    private ActionSet assignedSkills = new ActionSet();
     private IConstructMovement controllingMovement;
     private ConstructPart corePart;
-
-    private void Awake()
-    {
-        actionSet = new ConstructActionSet(this);
-    }
 
     private void SetControllingMovement(IConstructMovement movement)
     {
@@ -82,8 +105,8 @@ public class Construct : MonoBehaviour
         if (!movements.Contains(movement)) throw new Exception("Cannot SetControllingMovement(movement) when movement not registered.");
         if (movement.IsControlling) throw new Exception("Cannot SetControllingMovement(movement) when movement already controlling.");
         if (controllingMovement != null) UnsetControllingMovement();
-        controllingMovement.SetControlling();
         controllingMovement = movement;
+        controllingMovement.SetControlling();
     }
 
     private void UnsetControllingMovement()

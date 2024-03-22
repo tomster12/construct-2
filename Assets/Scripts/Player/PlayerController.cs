@@ -11,15 +11,17 @@ public class PlayerController : MonoBehaviour
         UpdateCamDynamics();
     }
 
-    private static readonly Dictionary<PlayerInput, string> ACTION_INPUT_BINDINGS = new Dictionary<PlayerInput, string>()
+    private static readonly Dictionary<PlayerInput, int> SKILL_BINDINGS = new Dictionary<PlayerInput, int>()
     {
-        { PlayerInput.MouseInput(0), "Mouse Skill 1" },
-        { PlayerInput.MouseInput(1), "Mouse Skill 2" },
-        { PlayerInput.KeyInput("1"), "Skill 1" },
-        { PlayerInput.KeyInput("2"), "Skill 2" },
-        { PlayerInput.KeyInput("3"), "Skill 3" },
-        { PlayerInput.KeyInput("4"), "Skill 4" },
+        { PlayerInput.MouseInput(0), 0 },
+        { PlayerInput.MouseInput(1), 1 },
+        { PlayerInput.KeyInput("1"), 2 },
+        { PlayerInput.KeyInput("2"), 3 },
+        { PlayerInput.KeyInput("3"), 4 },
+        { PlayerInput.KeyInput("4"), 5 },
     };
+
+    private static readonly PlayerInput CONSTRUCTION_BINDING = PlayerInput.KeyInput("f");
 
     [SerializeField] private Transform camParent;
     [SerializeField] private Camera cam;
@@ -74,12 +76,14 @@ public class PlayerController : MonoBehaviour
         // Update aiming
         aimInput = new Vector3(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"), 0.0f);
 
-        // Update actions
-        foreach (KeyValuePair<PlayerInput, string> actionInput in ACTION_INPUT_BINDINGS)
+        // Update skills and construction
+        foreach (KeyValuePair<PlayerInput, int> actionInput in SKILL_BINDINGS)
         {
-            if (actionInput.Key.GetDown()) construct.ActionInputDown(actionInput.Value);
-            else if (actionInput.Key.GetUp()) construct.ActionInputUp(actionInput.Value);
+            if (actionInput.Key.GetDown()) construct.SkillInputDown(actionInput.Value);
+            else if (actionInput.Key.GetUp()) construct.SkillInputUp(actionInput.Value);
         }
+        if (CONSTRUCTION_BINDING.GetDown()) construct.ConstructionInputDown();
+        else if (CONSTRUCTION_BINDING.GetUp()) construct.ConstructionInputUp();
     }
 
     private void UpdateCamDynamics()

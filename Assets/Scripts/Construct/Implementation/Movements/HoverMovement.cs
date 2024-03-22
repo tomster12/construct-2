@@ -10,13 +10,11 @@ public class HoverMovement : MonoBehaviour, IAttacherMovement
     public void Aim(Vector3 pos)
     {
         // TODO: Implement
-        Debug.Log("HopMovement.Aim(pos) not implemented.");
     }
 
     public void Move(Vector3 dir)
     {
         // TODO: Implement
-        Debug.Log("HopMovement.Move(dir) not implemented.");
     }
 
     public IEnumerator Attach(AttacheeComponent atachee)

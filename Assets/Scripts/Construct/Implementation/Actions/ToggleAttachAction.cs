@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class ToggleAttachAction : ConstructAction
+public class ToggleAttachAction : Action
 {
     public override string ActionName => "Mouse Skill 1"; // TODO: Some automatic way of binding skills
     public override ActionUseType UseType => ActionUseType.SINGLE;

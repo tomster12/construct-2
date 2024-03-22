@@ -5,10 +5,7 @@ using UnityEngine;
 [RequireComponent(typeof(WorldObject))]
 public class ConstructPart : MonoBehaviour
 {
-    public Action<Construct> OnJoinConstructEvent = delegate { };
-    public Action OnLeaveConstructEvent = delegate { };
     public WorldObject WO { get; private set; }
-    public IConstructMovement InherentMovement => inherentMovement;
     public IPartController CurrentController => currentController;
     public Construct Construct => currentConstruct;
     public bool IsConstructed => currentConstruct != null;
@@ -28,15 +25,15 @@ public class ConstructPart : MonoBehaviour
     {
         if (currentConstruct != null) throw new Exception("Cannot OnJoinConstruct(construct) when already joined to construct.");
         currentConstruct = construct;
-        if (inherentMovement != null) currentConstruct.RegisterPartMovement(inherentMovement);
-        OnJoinConstructEvent(construct);
+        foreach (IConstructMovement movement in movements) construct.RegisterMovement(movement);
+        foreach (Action skill in skills) construct.RegisterSkill(skill);
     }
 
     public void OnleaveConstruct(Construct construct)
     {
         if (currentConstruct != construct) throw new Exception("Cannot OnleaveConstruct(construct) when not joined to construct.");
-        if (inherentMovement != null) currentConstruct.DeregisterPartMovement(inherentMovement);
-        OnLeaveConstructEvent();
+        foreach (IConstructMovement movement in movements) construct.RegisterMovement(movement);
+        foreach (Action skill in skills) construct.RegisterSkill(skill);
         currentConstruct = null;
     }
 
@@ -53,8 +50,37 @@ public class ConstructPart : MonoBehaviour
         currentController = null;
     }
 
-    [SerializeReference] private IConstructMovement inherentMovement;
+    public void RegisterMovement(IConstructMovement movement)
+    {
+        if (movements.Contains(movement)) throw new Exception("Cannot RegisterMovement(movement), already registered!");
+        movements.Add(movement);
+        if (IsConstructed) currentConstruct.RegisterMovement(movement);
+    }
+
+    public void UnregisterMovement(IConstructMovement movement)
+    {
+        if (!movements.Contains(movement)) throw new Exception("Cannot UnregisterMovement(movement), not registered!");
+        movements.Remove(movement);
+        if (IsConstructed) currentConstruct.UnregisterMovement(movement);
+    }
+
+    public void RegisterSkill(Action skill)
+    {
+        if (skills.Contains(skill)) throw new Exception("Cannot RegisterSkill(skill), already registered!");
+        skills.Add(skill);
+        if (IsConstructed) currentConstruct.RegisterSkill(skill);
+    }
+
+    public void UnregisterSkill(Action skill)
+    {
+        if (!skills.Contains(skill)) throw new Exception("Cannot UnregisterSkill(skill), not registered!");
+        skills.Remove(skill);
+        if (IsConstructed) currentConstruct.UnregisterSkill(skill);
+    }
+
     private Dictionary<Type, Component> partComponents = new Dictionary<Type, Component>();
+    private HashSet<IConstructMovement> movements = new HashSet<IConstructMovement>();
+    private HashSet<Action> skills = new HashSet<Action>();
     private Construct currentConstruct;
     private IPartController currentController;
 
@@ -62,10 +88,15 @@ public class ConstructPart : MonoBehaviour
     {
         WO = GetComponent<WorldObject>();
 
-        // Cache all part components
+        // Cache and init all part components
         foreach (PartComponent component in GetComponents<PartComponent>())
         {
             partComponents[component.GetType()] = component;
+            component.Init(this);
         }
+
+        // Register all found movements and skills
+        foreach (IConstructMovement movement in GetComponents<IConstructMovement>()) RegisterMovement(movement);
+        foreach (Action skill in GetComponents<Action>()) RegisterSkill(skill);
     }
 }
