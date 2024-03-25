@@ -33,6 +33,9 @@ public class AttacherComponent : PartComponent
 
         yield return attacherMovement.Attach(attachee);
 
+        Part.Construct.AddPart(attachee.Part);
+        Part.Construct.RegisterShape(attachmentShape);
+
         attacherMovement.UnsetControlling();
         attachmentShape.SetControlling();
         Part.Construct.UpdateControllingMovement();
@@ -46,6 +49,9 @@ public class AttacherComponent : PartComponent
         if (!CanDetach()) yield break;
 
         IsTransitioning = true;
+
+        Part.Construct.RemovePart(attachmentShape.AttacheePart);
+        Part.Construct.UnregisterShape(attachmentShape);
 
         attachmentShape.UnsetControlling();
         attacherMovement.SetControlling();

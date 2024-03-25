@@ -16,6 +16,16 @@ public class Construct : MonoBehaviour
 
     public void ConstructionInputUp() => constructions[0].InputUp();
 
+    public void EnterForging()
+    {
+        // Check all part controllers
+        bool canEnter = true;
+    }
+
+    public void ExitForging()
+    {
+    }
+
     public void UpdateControllingMovement()
     {
         if (controllingMovement != null) return;
@@ -83,6 +93,18 @@ public class Construct : MonoBehaviour
         constructions.Remove(action);
     }
 
+    public void RegisterShape(IConstructShape shape)
+    {
+        if (shapes.Contains(shape)) throw new Exception("RegisterShape(shape): Already registered.");
+        shapes.Add(shape);
+    }
+
+    public void UnregisterShape(IConstructShape shape)
+    {
+        if (shapes.Contains(shape)) throw new Exception("UnregisterShape(shape): not registered.");
+        shapes.Remove(shape);
+    }
+
     public void InitCore(ConstructPart corePart)
     {
         if (this.corePart != null) throw new Exception("Cannot SetCore() when already have a core.");
@@ -93,6 +115,7 @@ public class Construct : MonoBehaviour
 
     private HashSet<ConstructPart> parts = new HashSet<ConstructPart>();
     private HashSet<IConstructMovement> movements = new HashSet<IConstructMovement>();
+    private HashSet<IConstructShape> shapes = new HashSet<IConstructShape>();
     private HashSet<Action> skills = new HashSet<Action>();
     private List<Action> constructions = new List<Action>();
     private ActionSet assignedSkills = new ActionSet();

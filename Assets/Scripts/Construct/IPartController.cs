@@ -10,4 +10,8 @@ public interface IPartController
     public bool CanSetControlling();
 
     public bool CanUnsetControlling();
+
+    public bool CanEnterForging();
+
+    public bool CanExitForging();
 }

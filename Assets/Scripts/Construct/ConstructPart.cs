@@ -99,4 +99,9 @@ public class ConstructPart : MonoBehaviour
         foreach (IConstructMovement movement in GetComponents<IConstructMovement>()) RegisterMovement(movement);
         foreach (Action skill in GetComponents<Action>()) RegisterSkill(skill);
     }
+
+    private void OnDrawGizmos()
+    {
+        // TODO: Draw indicators for constructed / controlled / controlled type
+    }
 }
