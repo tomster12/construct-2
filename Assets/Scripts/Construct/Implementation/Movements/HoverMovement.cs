@@ -55,5 +55,9 @@ public class HoverMovement : MonoBehaviour, IAttacherMovement
 
     public bool CanUnsetControlling() => CanTransition;
 
+    public bool CanEnterForging() => false;
+
+    public bool CanExitForging() => true;
+
     [SerializeField] private ConstructPart part;
 }

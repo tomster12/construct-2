@@ -5,21 +5,16 @@ using UnityEngine;
 [RequireComponent(typeof(WorldObject))]
 public class ConstructPart : MonoBehaviour
 {
-    public WorldObject WO { get; private set; }
+    public enum PartTag
+    { Core, Sharp };
+
+    public WorldObject WO => wo;
+    public List<PartTag> Tags => tags;
+
     public IPartController CurrentController => currentController;
     public Construct Construct => currentConstruct;
     public bool IsConstructed => currentConstruct != null;
     public bool IsControlled => currentController != null;
-
-    public T GetPartComponent<T>() where T : PartComponent
-    {
-        Type type = typeof(T);
-        if (partComponents.ContainsKey(type))
-        {
-            return partComponents[type] as T;
-        }
-        return null;
-    }
 
     public void OnJoinConstruct(Construct construct)
     {
@@ -32,8 +27,8 @@ public class ConstructPart : MonoBehaviour
     public void OnleaveConstruct(Construct construct)
     {
         if (currentConstruct != construct) throw new Exception("Cannot OnleaveConstruct(construct) when not joined to construct.");
-        foreach (IConstructMovement movement in movements) construct.RegisterMovement(movement);
-        foreach (Action skill in skills) construct.RegisterSkill(skill);
+        foreach (IConstructMovement movement in movements) construct.UnregisterMovement(movement);
+        foreach (Action skill in skills) construct.UnregisterSkill(skill);
         currentConstruct = null;
     }
 
@@ -78,7 +73,9 @@ public class ConstructPart : MonoBehaviour
         if (IsConstructed) currentConstruct.UnregisterSkill(skill);
     }
 
-    private Dictionary<Type, Component> partComponents = new Dictionary<Type, Component>();
+    [SerializeField] private WorldObject wo;
+    [SerializeField] private List<PartTag> tags = new List<PartTag>();
+
     private HashSet<IConstructMovement> movements = new HashSet<IConstructMovement>();
     private HashSet<Action> skills = new HashSet<Action>();
     private Construct currentConstruct;
@@ -86,16 +83,6 @@ public class ConstructPart : MonoBehaviour
 
     private void Awake()
     {
-        WO = GetComponent<WorldObject>();
-
-        // Cache and init all part components
-        foreach (PartComponent component in GetComponents<PartComponent>())
-        {
-            partComponents[component.GetType()] = component;
-            component.Init(this);
-        }
-
-        // Register all found movements and skills
         foreach (IConstructMovement movement in GetComponents<IConstructMovement>()) RegisterMovement(movement);
         foreach (Action skill in GetComponents<Action>()) RegisterSkill(skill);
     }
