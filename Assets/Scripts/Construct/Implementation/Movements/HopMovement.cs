@@ -31,4 +31,8 @@ public class HopMovement : MonoBehaviour, IConstructMovement
     public bool CanSetControlling() => CanTransition;
 
     public bool CanUnsetControlling() => CanTransition;
+
+    public bool CanEnterForging() => false;
+
+    public bool CanExitForging() => true;
 }

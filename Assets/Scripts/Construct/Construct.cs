@@ -12,14 +12,16 @@ public class Construct : MonoBehaviour
 
     public void SkillInputUp(int slot) => assignedSkills.ActionInputUp(slot);
 
-    public void ConstructionInputDown() => constructions[0].InputDown();
+    public void ConstructionInputDown()
+    {
+    }
 
-    public void ConstructionInputUp() => constructions[0].InputUp();
+    public void ConstructionInputUp()
+    {
+    }
 
     public void EnterForging()
     {
-        // Check all part controllers
-        bool canEnter = true;
     }
 
     public void ExitForging()
@@ -81,18 +83,6 @@ public class Construct : MonoBehaviour
         skills.Remove(action);
     }
 
-    public void RegisterConstruction(Action action)
-    {
-        if (constructions.Contains(action)) throw new Exception("RegisterConstructionAction(action): already registered.");
-        constructions.Add(action);
-    }
-
-    public void UnregisterConstruction(Action action)
-    {
-        if (!constructions.Contains(action)) throw new Exception("UnregisterConstructionAction(action): not registered.");
-        constructions.Remove(action);
-    }
-
     public void RegisterShape(IConstructShape shape)
     {
         if (shapes.Contains(shape)) throw new Exception("RegisterShape(shape): Already registered.");
@@ -113,18 +103,16 @@ public class Construct : MonoBehaviour
         UpdateControllingMovement();
     }
 
+    private ConstructPart corePart;
+    private IConstructMovement controllingMovement;
     private HashSet<ConstructPart> parts = new HashSet<ConstructPart>();
     private HashSet<IConstructMovement> movements = new HashSet<IConstructMovement>();
     private HashSet<IConstructShape> shapes = new HashSet<IConstructShape>();
     private HashSet<Action> skills = new HashSet<Action>();
-    private List<Action> constructions = new List<Action>();
     private ActionSet assignedSkills = new ActionSet();
-    private IConstructMovement controllingMovement;
-    private ConstructPart corePart;
 
     private void SetControllingMovement(IConstructMovement movement)
     {
-        if (movement == null) throw new Exception("Cannot SetControllingMovement(null).");
         if (!movements.Contains(movement)) throw new Exception("Cannot SetControllingMovement(movement) when movement not registered.");
         if (movement.IsControlling) throw new Exception("Cannot SetControllingMovement(movement) when movement already controlling.");
         if (controllingMovement != null) UnsetControllingMovement();

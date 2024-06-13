@@ -76,7 +76,7 @@ public class PlayerController : MonoBehaviour
         // Update aiming
         aimInput = new Vector3(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"), 0.0f);
 
-        // Update skills and construction
+        // Update skills and construction input
         foreach (KeyValuePair<PlayerInput, int> actionInput in SKILL_BINDINGS)
         {
             if (actionInput.Key.GetDown()) construct.SkillInputDown(actionInput.Value);
