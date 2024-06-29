@@ -1,17 +1,6 @@
 public interface IPartController
 {
-    public bool IsControlling { get; }
-    public bool CanTransition { get; }
+    bool CanEnterForging();
 
-    public void SetControlling();
-
-    public void UnsetControlling();
-
-    public bool CanSetControlling();
-
-    public bool CanUnsetControlling();
-
-    public bool CanEnterForging();
-
-    public bool CanExitForging();
+    bool CanExitForging();
 }

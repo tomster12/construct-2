@@ -8,6 +8,12 @@ public class WorldObject : MonoBehaviour
     public Bounds Bounds => GetCachedComponent<Collider>().bounds;
     public float MaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.y, Bounds.extents.z);
     public float XZMaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.z);
+    public float Weight { get; set; } = 0f;
+
+    public void InitPhysical()
+    {
+        Weight = RB.mass;
+    }
 
     public T GetCachedComponent<T>() where T : Component
     {

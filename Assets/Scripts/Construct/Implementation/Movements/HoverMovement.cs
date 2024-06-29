@@ -1,63 +1,42 @@
-using System.Collections;
 using UnityEngine;
 
-public class HoverMovement : MonoBehaviour, IAttacherMovement
+public class HoverMovement : ConstructMovement, IAttacherMovement
 {
-    public bool IsControlling { get; private set; }
-    public bool CanTransition => !IsAttachTransitioning;
-    public bool IsAttachTransitioning { get; private set; }
+    public override bool IsControlling { get; protected set; }
 
-    public void Aim(Vector3 pos)
-    {
-        // TODO: Implement
-    }
+    // TODO: Implement
+    public override void Aim(Vector3 pos) => Debug.LogWarning("HopMovement.Aim(pos) not implemented.");
 
-    public void Move(Vector3 dir)
-    {
-        // TODO: Implement
-    }
+    // TODO: Implement
+    public override void Move(Vector3 dir) => Debug.LogWarning("HopMovement.Move(dir) not implemented.");
 
-    public IEnumerator Attach(AttacheeComponent atachee)
-    {
-        // TODO: Implement
-        IsAttachTransitioning = true;
-        yield return new WaitForSeconds(1f);
-        IsAttachTransitioning = false;
-    }
-
-    public IEnumerator Detach()
-    {
-        // TODO: Implement
-        IsAttachTransitioning = true;
-        yield return new WaitForSeconds(1f);
-        IsAttachTransitioning = false;
-    }
-
-    public bool CanAttach(AttacheeComponent attachee) => IsControlling && !attachee.Part.IsConstructed && CanUnsetControlling();
-
-    public bool CanDetach() => !IsControlling && CanSetControlling();
-
-    public void SetControlling()
+    public override void SetControlling()
     {
         if (!CanSetControlling()) throw new System.Exception("SetControlling(): !CanSetControlling().");
         IsControlling = true;
         part.SetController(this);
     }
 
-    public void UnsetControlling()
+    public override void UnsetControlling()
     {
         if (!CanUnsetControlling()) throw new System.Exception("UnsetControlling(): !CanUnsetControlling.");
         IsControlling = false;
         part.UnsetController();
     }
 
-    public bool CanSetControlling() => CanTransition;
+    public override bool CanSetControlling() => canTransition;
 
-    public bool CanUnsetControlling() => CanTransition;
+    public override bool CanUnsetControlling() => canTransition;
 
-    public bool CanEnterForging() => false;
+    public override bool CanEnterForging() => false;
 
-    public bool CanExitForging() => true;
+    public override bool CanExitForging() => true;
 
+    public override Vector3 GetCentre() => part.GetCentre();
+
+    [Header("References")]
     [SerializeField] private ConstructPart part;
+
+    private bool canTransition => !isAttachTransitioning;
+    private bool isAttachTransitioning;
 }

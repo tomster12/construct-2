@@ -13,9 +13,11 @@ public abstract class Action : MonoBehaviour
     public abstract bool IsCooldown { get; }
     public virtual bool CanUse => !IsActive && !IsCooldown;
 
-    public abstract void InputDown();
+    public virtual void InputDown()
+    { }
 
-    public abstract void InputUp();
+    public virtual void InputUp()
+    { }
 
     public void Assign(ActionSet actionSet)
     {
