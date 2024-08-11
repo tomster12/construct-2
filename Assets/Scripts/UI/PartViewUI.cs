@@ -22,7 +22,7 @@ public class PartViewUI : MonoBehaviour
     [SerializeField] private GameObject shapesParent;
 
     private ConstructPart part;
-    private PlayerController playerController;
+    private PlayerConstructController PlayerConstructController;
 
     private void Redraw()
     {

@@ -8,7 +8,7 @@ public class PlayerUI : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private Construct construct;
-    [SerializeField] private PlayerController playerController;
+    [SerializeField] private PlayerConstructController PlayerConstructController;
     [SerializeField] private RectTransform constructPartViewsParent;
     [SerializeField] private RectTransform constructPartViewsNoneText;
     [SerializeField] private RectTransform targettedPartViewParent;

@@ -5,7 +5,7 @@ public abstract class ShapeUI : MonoBehaviour
 {
     public virtual void Init()
     {
-        PlayerController.Instance.OnTargetChange += OnConstructTargetChange;
+        PlayerConstructController.Instance.OnTargetChange += OnConstructTargetChange;
     }
 
     public abstract void Redraw();
@@ -13,7 +13,7 @@ public abstract class ShapeUI : MonoBehaviour
     public virtual void OnConstructTargetChange()
     {
         // Find all player controller constructions involving this shape
-        var relevantConstructions = PlayerController.Instance.PossibleConstructions.Where(x => x.Item1 == shape);
+        var relevantConstructions = PlayerConstructController.Instance.PossibleConstructions.Where(x => x.Item1 == shape);
 
         // Clear if there arent any
         if (relevantConstructions.Count() == 0) this.previewConstruction = null;
@@ -33,6 +33,6 @@ public abstract class ShapeUI : MonoBehaviour
 
     protected virtual void OnDestroy()
     {
-        PlayerController.Instance.OnTargetChange -= OnConstructTargetChange;
+        PlayerConstructController.Instance.OnTargetChange -= OnConstructTargetChange;
     }
 }

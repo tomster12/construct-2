@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class PlayerController : MonoBehaviour
+public class PlayerConstructController : MonoBehaviour
 {
-    public static PlayerController Instance;
+    public static PlayerConstructController Instance;
     public UnityAction OnTargetChange = delegate { };
     public Raycaster Raycaster => raycaster;
     public List<(ConstructShape, ConstructPart, int)> PossibleConstructions { get; private set; } = new();
@@ -155,29 +155,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
-    {
-        FixedUpdateConstruct();
-    }
-
-    private void FixedUpdateConstruct()
-    {
-        construct.Move(movementInput * Time.fixedDeltaTime * constructMoveSpeed);
-        construct.Aim(raycaster.HitPoint);
-    }
-
-    private void LockMouse()
-    {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
-
-    private void OnRaycasterTargetChange()
-    {
-        UpdateConstructions();
-        OnTargetChange();
-    }
-
     private void UpdateConstructions()
     {
         // If not targetting clear and return
@@ -203,5 +180,28 @@ public class PlayerController : MonoBehaviour
                 if (canConstruct) PossibleConstructions.Add((shape, part, slot));
             }
         }
+    }
+
+    private void FixedUpdate()
+    {
+        FixedUpdateConstruct();
+    }
+
+    private void FixedUpdateConstruct()
+    {
+        construct.Move(movementInput * Time.fixedDeltaTime * constructMoveSpeed);
+        construct.Aim(raycaster.HitPoint);
+    }
+
+    private void LockMouse()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private void OnRaycasterTargetChange()
+    {
+        UpdateConstructions();
+        OnTargetChange();
     }
 }
