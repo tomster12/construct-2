@@ -1,42 +1,41 @@
 using UnityEngine;
+using UnityEngine.Assertions;
 
 public class HopMovement : ConstructMovement
 {
-    public override bool IsControlling { get; protected set; }
     public bool IsGrounded { get; private set; }
 
-    // TODO: Implement
     public override void Aim(Vector3 pos) => Debug.LogWarning("HopMovement.Aim(pos) not implemented.");
 
-    // TODO: Implement
     public override void Move(Vector3 dir) => Debug.LogWarning("HopMovement.Move(dir) not implemented.");
 
-    public override void SetControlling()
+    public override bool CanActivate() => !IsActive && part.CanControl;
+
+    public override void Activate()
     {
-        if (!CanSetControlling()) throw new System.Exception("Cannot SetControlling(true) when already controlled.");
-        IsControlling = true;
-        part.SetController(this);
+        Assert.IsTrue(CanActivate());
+        partPC = part.TakeControl(this);
+        IsActive = true;
+        OnStateChange.Invoke(IsActive);
     }
 
-    public override void UnsetControlling()
+    public override void Deactivate()
     {
-        if (!CanUnsetControlling()) throw new System.Exception("Cannot UnsetControlling(false) when not controlled.");
-        IsControlling = false;
-        part.UnsetController();
+        Assert.IsTrue(IsActive);
+        partPC.Release();
+        IsActive = false;
+        OnStateChange.Invoke(IsActive);
     }
-
-    public override bool CanSetControlling() => canTransition;
-
-    public override bool CanUnsetControlling() => canTransition;
-
-    public override bool CanEnterForging() => false;
-
-    public override bool CanExitForging() => true;
 
     public override Vector3 GetCentre() => part.GetCentre();
 
     [Header("References")]
     [SerializeField] private ConstructPart part;
 
-    private bool canTransition => IsGrounded;
+    private ConstructPart.PhysicalHandle partPC;
+
+    private void Awake()
+    {
+        Assert.IsTrue(part != null);
+    }
 }

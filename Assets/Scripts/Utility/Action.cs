@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 public enum ActionUseType
 { SINGLE, TOGGLE, CHANNELED }
@@ -21,14 +22,14 @@ public abstract class Action : MonoBehaviour
 
     public void Assign(ActionSet actionSet)
     {
-        if (IsAssigned) throw new Exception("Cannot Assign(actionSet), already assigned!");
-        if (actionSet == null) throw new Exception("Cannot Assign(actionSet), null!");
+        Assert.IsFalse(IsAssigned);
+        Assert.IsNotNull(actionSet);
         this.actionSet = actionSet;
     }
 
     public void Unnassign()
     {
-        if (!IsAssigned) throw new Exception("Cannot Unnasign(), not assigned!");
+        Assert.IsTrue(IsAssigned);
         this.actionSet = null;
     }
 

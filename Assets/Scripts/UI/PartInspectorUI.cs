@@ -9,7 +9,7 @@ public class PartInspectorUI : MonoBehaviour
     }
 
     [Header("References")]
-    [SerializeField] private PartViewUI partView;
+    [SerializeField] private ConstructPartUI partView;
     [SerializeField] private Transform billboard;
 
     private ConstructPart part;

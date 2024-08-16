@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 public class PlayerUI : MonoBehaviour
 {
@@ -8,7 +7,6 @@ public class PlayerUI : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private Construct construct;
-    [SerializeField] private PlayerConstructController PlayerConstructController;
     [SerializeField] private RectTransform constructPartViewsParent;
     [SerializeField] private RectTransform constructPartViewsNoneText;
     [SerializeField] private RectTransform targettedPartViewParent;
@@ -40,17 +38,17 @@ public class PlayerUI : MonoBehaviour
 
         constructPartViewsNoneText.gameObject.SetActive(construct.Parts.Count == 0);
 
-        const float HEIGHT = 35.0f;
+        const float HEIGHT = 43.0f;
         const float GAP = 5.0f;
         const float PADDING = 5.0f;
         for (int i = 0; i < construct.Parts.Count; i++)
         {
             ConstructPart part = construct.Parts[i];
-            GameObject partViewObject = Instantiate(partViewPrefab, constructPartViewsParent);
-            RectTransform rectTfm = partViewObject.GetComponent<RectTransform>();
-            PartViewUI partView = partViewObject.GetComponent<PartViewUI>();
-            rectTfm.anchoredPosition = new Vector2(PADDING, -i * (HEIGHT + GAP) - PADDING);
-            partView.Init(part);
+            GameObject partUIObject = Instantiate(partViewPrefab, constructPartViewsParent);
+            RectTransform rectTfm = partUIObject.GetComponent<RectTransform>();
+            ConstructPartUI partUI = partUIObject.GetComponent<ConstructPartUI>();
+            rectTfm.anchoredPosition = new Vector2(PADDING, -PADDING - i * (GAP + HEIGHT));
+            partUI.Init(part);
         }
     }
 }

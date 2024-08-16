@@ -22,20 +22,20 @@ public class Raycaster
         Ray ray = camera.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit, MAX_DISTANCE))
         {
+            HitPoint = hit.point;
+            Hit = true;
             if (hit.collider.transform == HitTransform) return;
             HitTransform = hit.collider.transform;
-            HitPoint = hit.point;
             HitWorldObject = HitTransform.GetComponent<WorldObject>();
-            Hit = true;
             OnTargetChange.Invoke();
         }
         else
         {
+            HitPoint = ray.GetPoint(MAX_DISTANCE);
+            Hit = false;
             if (HitTransform == null) return;
             HitTransform = null;
-            HitPoint = ray.GetPoint(MAX_DISTANCE);
             HitWorldObject = null;
-            Hit = false;
             OnTargetChange.Invoke();
         }
     }

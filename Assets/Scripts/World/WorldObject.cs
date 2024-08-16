@@ -5,9 +5,11 @@ using UnityEngine;
 public class WorldObject : MonoBehaviour
 {
     public Rigidbody RB => GetCachedComponent<Rigidbody>();
-    public Bounds Bounds => GetCachedComponent<Collider>().bounds;
+    public Collider Collider => GetCachedComponent<Collider>();
+    public Bounds Bounds => Collider.bounds;
+    public Vector3 Extents => Bounds.extents;
     public float MaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.y, Bounds.extents.z);
-    public float XZMaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.z);
+    public float MaxExtentXZ => Mathf.Max(Bounds.extents.x, Bounds.extents.z);
     public float Weight { get; set; } = 0f;
 
     public void InitPhysical()

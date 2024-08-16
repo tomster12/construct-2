@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Assertions;
 
 public class ActionSet
 {
@@ -32,29 +33,31 @@ public class ActionSet
 
     public bool RegisterAction(Action action, int slot = -1)
     {
-        if (action.IsAssigned) throw new Exception("RegisterAction(action): already assigned.");
+        Assert.IsFalse(action.IsAssigned);
+
         if (slot != -1)
         {
-            if (slot < 0 || slot >= this.slotCount) throw new ArgumentOutOfRangeException();
-            if (actions[slot] != null) throw new Exception("RegisterAction(action): slot already assigned.");
+            if (slot < 0 || slot >= slotCount) throw new ArgumentOutOfRangeException();
+            Assert.IsNull(actions[slot]);
             actions[slot] = action;
         }
         else
         {
-            if (AvailableSlotCount == 0) throw new Exception("!RegisterAction(action): no available slots.");
+            Assert.IsFalse(AvailableSlotCount == 0);
             slot = availableSlots.Min();
             availableSlots.Remove(slot);
             actions[slot] = action;
         }
+
         action.Assign(this);
         return true;
     }
 
     public bool UnregisterAction(Action action)
     {
-        if (!action.IsAssigned) throw new Exception("Cannot UnregisterAction(action) not assigned!");
+        Assert.IsTrue(action.IsAssigned);
         int slot = Array.IndexOf(actions, action);
-        if (slot == -1) throw new Exception("Cannot UnregisterAction(action) not found!");
+        Assert.IsTrue(slot != -1);
         action.Unnassign();
         actions[slot] = null;
         availableSlots.Add(slot);
@@ -64,7 +67,7 @@ public class ActionSet
     public bool UnregisterAction(int slot)
     {
         if (slot < 0 || slot >= this.slotCount) throw new ArgumentOutOfRangeException();
-        if (actions[slot] == null) throw new Exception("Cannot UnregisterAction(slot) no action in slot!");
+        Assert.IsNotNull(actions[slot]);
         actions[slot].Unnassign();
         actions[slot] = null;
         availableSlots.Add(slot);

@@ -1,19 +1,19 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Events;
 
 public class PlayerConstructController : MonoBehaviour
 {
     public static PlayerConstructController Instance;
-    public UnityAction OnTargetChange = delegate { };
+    public UnityAction<Construction[]> OnInspectedConstructionsChange { get; set; } = delegate { };
     public Raycaster Raycaster => raycaster;
-    public List<(ConstructShape, ConstructPart, int)> PossibleConstructions { get; private set; } = new();
 
     public void SetTarget(WorldObject targetWO)
     {
         camTarget = targetWO;
-        camOffsetBounds = targetWO.XZMaxExtent * camOffsetBoundsMult + camOffsetAdditional;
-        camZoomDistance = targetWO.XZMaxExtent * 15.0f;
+        camOffsetBounds = targetWO.MaxExtentXZ * camOffsetBoundsMult + camOffsetAdditional;
+        camZoomDistance = targetWO.MaxExtentXZ * 15.0f;
         UpdateCamDynamics();
     }
 
@@ -39,7 +39,6 @@ public class PlayerConstructController : MonoBehaviour
     [SerializeField] private GameObject partInspectorPrefab;
 
     [Header("Config")]
-    [SerializeField] private float constructMoveSpeed = 10.0f;
     [SerializeField] private float camZoomAcc = 600.0f;
     [SerializeField] private float camZoomDrag = 0.9f;
     [SerializeField] private float camZoomVelMax = 6.0f;
@@ -57,9 +56,11 @@ public class PlayerConstructController : MonoBehaviour
     private float camZoomVel = 0.0f;
     private float camZoomDistance = 5.0f;
     private Dictionary<ConstructPart, PartInspectorUI> nearbyParts;
+    private Construction[] inspectedConstructions = new Construction[0];
 
     private void Awake()
     {
+        Assert.IsNull(Instance);
         Instance = this;
     }
 
@@ -70,7 +71,7 @@ public class PlayerConstructController : MonoBehaviour
         raycaster = new Raycaster(cam);
         raycaster.OnTargetChange += OnRaycasterTargetChange;
         construct.InitCore(corePart);
-        SetTarget(corePart.BaseWO);
+        SetTarget(corePart.WO);
         LockMouse();
     }
 
@@ -101,9 +102,9 @@ public class PlayerConstructController : MonoBehaviour
             if (actionInput.Key.GetDown()) construct.SkillInputDown(actionInput.Value);
             else if (actionInput.Key.GetUp()) construct.SkillInputUp(actionInput.Value);
         }
-        if (CONSTRUCTION_BINDING.GetDown() && PossibleConstructions.Count > 0)
+        if (CONSTRUCTION_BINDING.GetDown() && inspectedConstructions.Length > 0)
         {
-            construct.PerformConstruction(PossibleConstructions[0]);
+            construct.PerformConstruction(inspectedConstructions[0]);
         }
     }
 
@@ -133,9 +134,9 @@ public class PlayerConstructController : MonoBehaviour
 
         // Find all parts within radius and create inspector
         Vector3 centre = construct.GetCentre();
-        foreach (ConstructPart part in ConstructPart.Parts)
+        foreach (ConstructPart part in ConstructPart.GlobalParts)
         {
-            if (Vector3.Distance(centre, part.BaseWO.transform.position) < nearbyPartRadius && !construct.Parts.Contains(part))
+            if (Vector3.Distance(centre, part.WO.transform.position) < nearbyPartRadius && !construct.Parts.Contains(part))
             {
                 if (!nearbyParts.ContainsKey(part))
                 {
@@ -155,31 +156,12 @@ public class PlayerConstructController : MonoBehaviour
         }
     }
 
-    private void UpdateConstructions()
+    private void UpdateInspectedConstructions()
     {
         // If not targetting clear and return
-        if (raycaster.HitConstructPart == null)
-        {
-            PossibleConstructions.Clear();
-            return;
-        }
-
-        // Find all construct shapes that targetted parts fits with
-        foreach (ConstructShape shape in construct.Shapes)
-        {
-            (bool canConstruct, int slot) = shape.CanConstructWith(raycaster.HitConstructPart);
-            if (canConstruct) PossibleConstructions.Add((shape, raycaster.HitConstructPart, slot));
-        }
-
-        // Find all part shapes which a construct part fits with
-        foreach (ConstructPart part in construct.Parts)
-        {
-            foreach (ConstructShape shape in raycaster.HitConstructPart.Shapes)
-            {
-                (bool canConstruct, int slot) = shape.CanConstructWith(part);
-                if (canConstruct) PossibleConstructions.Add((shape, part, slot));
-            }
-        }
+        if (raycaster.HitConstructPart == null) inspectedConstructions = new Construction[0];
+        else inspectedConstructions = construct.GetAvailableConstructions(raycaster.HitConstructPart);
+        OnInspectedConstructionsChange(inspectedConstructions);
     }
 
     private void FixedUpdate()
@@ -189,7 +171,7 @@ public class PlayerConstructController : MonoBehaviour
 
     private void FixedUpdateConstruct()
     {
-        construct.Move(movementInput * Time.fixedDeltaTime * constructMoveSpeed);
+        construct.Move(movementInput);
         construct.Aim(raycaster.HitPoint);
     }
 
@@ -201,7 +183,6 @@ public class PlayerConstructController : MonoBehaviour
 
     private void OnRaycasterTargetChange()
     {
-        UpdateConstructions();
-        OnTargetChange();
+        UpdateInspectedConstructions();
     }
 }

@@ -160,9 +160,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4439872447536090062}
   - component: {fileID: 6920077115849858957}
-  - component: {fileID: 4051574166210102145}
+  - component: {fileID: 4901774158391544141}
   m_Layer: 0
-  m_Name: Attachment Shape UI
+  m_Name: Construct Shape UI Attachment
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -197,7 +197,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6850420052142709068}
   m_CullTransparentMesh: 1
---- !u!114 &4051574166210102145
+--- !u!114 &4901774158391544141
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -206,8 +206,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 6850420052142709068}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a5d0d3f670d314045bd5171f97efb089, type: 3}
+  m_Script: {fileID: 11500000, guid: 15e367360d8ccb44e8457e8b24bca510, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attacherImage: {fileID: 6505131276441663320}
-  attacheeImage: {fileID: 7872457810435158187}
+  slotImages:
+  - {fileID: 7872457810435158187}
+  - {fileID: 6505131276441663320}

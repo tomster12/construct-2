@@ -1,7 +1,6 @@
-using System.Linq;
 using UnityEngine;
 
-public class PartViewUI : MonoBehaviour
+public class ConstructPartUI : MonoBehaviour
 {
     public void Init(ConstructPart part)
     {
@@ -19,10 +18,10 @@ public class PartViewUI : MonoBehaviour
     [SerializeField] private UnityEngine.UI.Image iconImage;
     [SerializeField] private TMPro.TextMeshProUGUI nameText;
     [SerializeField] private TMPro.TextMeshProUGUI weightClassText;
+    [SerializeField] private GameObject shapesSeperator;
     [SerializeField] private GameObject shapesParent;
 
     private ConstructPart part;
-    private PlayerConstructController PlayerConstructController;
 
     private void Redraw()
     {
@@ -34,16 +33,15 @@ public class PartViewUI : MonoBehaviour
         xpGaugeImage.fillAmount = part.XP / part.RequiredXP;
 
         // Handle updating of shapes
-
         shapesParent.SetActive(part.Shapes.Count > 0);
-
+        shapesSeperator.SetActive(shapesParent.activeSelf);
         foreach (Transform child in shapesParent.transform)
         {
             Destroy(child.gameObject);
         }
         foreach (ConstructShape shape in part.Shapes)
         {
-            ShapeUI shapeUI = ShapeUIFactory.Create(shape, shapesParent.transform);
+            ConstructShapeUI shapeUI = ConstructShapeUI.Create(shape, shapesParent.transform);
         }
     }
 

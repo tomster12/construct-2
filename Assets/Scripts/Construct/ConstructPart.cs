@@ -1,26 +1,28 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Events;
 
+public enum PartWeightClass
+{ S, M, L, XL };
+
+public enum PartTag
+{ Core, Sharp };
+
 [RequireComponent(typeof(WorldObject))]
-public class ConstructPart : MonoBehaviour
+public partial class ConstructPart : MonoBehaviour
 {
-    public static List<ConstructPart> Parts = new List<ConstructPart>();
-
-    public enum TagType
-    { Core, Sharp };
-
-    public enum WeightClassType
-    { S, M, L, XL };
+    public static List<ConstructPart> GlobalParts = new List<ConstructPart>();
 
     public UnityAction OnPropertiesChange = delegate { };
-    public WorldObject BaseWO => baseWO;
+    public WorldObject WO => worldObject;
     public Sprite Icon => icon;
-    public List<TagType> Tags => tags;
+    public List<PartTag> Tags => tags;
     public List<ConstructShape> Shapes => shapes;
-    public List<ConstructShape> ActiveShapes => shapes.FindAll(shape => shape.IsConstructed);
-    public WeightClassType WeightClass { get; private set; } = WeightClassType.S;
+    public PartWeightClass WeightClass { get; private set; } = PartWeightClass.S;
     public int Level { get; private set; } = 1;
     public float Health { get; private set; } = 1.0f;
     public float XP { get; private set; } = 0.6f;
@@ -32,118 +34,189 @@ public class ConstructPart : MonoBehaviour
     public bool IsControlled => CurrentController != null;
     public bool CanControl => !IsControlled;
 
-    public void SetController(IPartController controller)
+    public PhysicalHandle TakeControl(IPartController controller)
     {
-        if (controller == null) throw new Exception("Cannot SetController(null).");
-        if (!CanControl) throw new Exception("Cannot SetController(controller) when !CanControl.");
+        Assert.IsTrue(CanControl);
         CurrentController = controller;
-    }
-
-    public void UnsetController()
-    {
-        if (!IsControlled) throw new Exception("Cannot UnsetController() when not controlled.");
-        CurrentController = null;
-    }
-
-    public void RegisterMovement(ConstructMovement movement)
-    {
-        if (movements.Contains(movement)) throw new Exception("Cannot RegisterMovement(movement), already registered!");
-        movements.Add(movement);
-        if (IsConstructed) CurrentConstruct.OnRegisterMovement(movement);
-        OnPropertiesChange();
-    }
-
-    public void UnregisterMovement(ConstructMovement movement)
-    {
-        if (!movements.Contains(movement)) throw new Exception("Cannot UnregisterMovement(movement), not registered!");
-        movements.Remove(movement);
-        if (IsConstructed) CurrentConstruct.OnUnregisterMovement(movement);
-        OnPropertiesChange();
-    }
-
-    public void RegisterSkill(ConstructSkill skill)
-    {
-        if (skills.Contains(skill)) throw new Exception("Cannot RegisterSkill(skill), already registered!");
-        skills.Add(skill);
-        if (IsConstructed) CurrentConstruct.OnRegisterSkill(skill);
-        OnPropertiesChange();
-    }
-
-    public void UnregisterSkill(ConstructSkill skill)
-    {
-        if (!skills.Contains(skill)) throw new Exception("Cannot UnregisterSkill(skill), not registered!");
-        skills.Remove(skill);
-        if (IsConstructed) CurrentConstruct.OnUnregisterSkill(skill);
+        return new PhysicalHandle(this);
     }
 
     public Vector3 GetCentre()
     {
-        return baseWO.transform.position;
+        return worldObject.transform.position;
     }
 
     public void OnJoinConstruct(Construct construct)
     {
-        if (CurrentConstruct != null) throw new Exception("Cannot OnJoinConstruct(construct) when already joined to construct.");
+        Assert.IsNull(CurrentConstruct);
         CurrentConstruct = construct;
-        foreach (ConstructMovement movement in movements) construct.OnRegisterMovement(movement);
-        foreach (ConstructSkill skill in skills) construct.OnRegisterSkill(skill);
-        foreach (ConstructShape shape in shapes) construct.OnRegisterShape(shape);
+        foreach (ConstructMovement movement in movements) construct.RegisterPartMovement(this, movement);
+        foreach (ConstructSkill skill in skills) construct.RegisterPartSkill(this, skill);
+        foreach (ConstructShape shape in shapes) construct.RegisterPartShape(this, shape);
     }
 
     public void OnLeaveConstruct(Construct construct)
     {
-        if (CurrentConstruct != construct) throw new Exception("Cannot OnleaveConstruct(construct) when not joined to construct.");
-        foreach (ConstructMovement movement in movements) construct.OnUnregisterMovement(movement);
-        foreach (ConstructSkill skill in skills) construct.OnUnregisterSkill(skill);
-        foreach (ConstructShape shape in shapes) construct.OnUnregisterShape(shape);
+        Assert.IsTrue(CurrentConstruct == construct);
+        foreach (ConstructMovement movement in movements) construct.UnregisterPartMovement(this, movement);
+        foreach (ConstructSkill skill in skills) construct.UnregisterPartSkill(this, skill);
+        foreach (ConstructShape shape in shapes) construct.UnregisterPartShape(this, shape);
         CurrentConstruct = null;
     }
 
-    public void OnJoinShape(ConstructShape shape)
+    public void JoinShape(ConstructShape shape)
     {
-        if (shapes.Contains(shape)) throw new Exception("Cannot RegisterShape(shape), already registered!");
+        Assert.IsFalse(shapes.Contains(shape));
         shapes.Add(shape);
-        if (IsConstructed) CurrentConstruct.OnRegisterShape(shape);
+        if (IsConstructed) CurrentConstruct.RegisterPartShape(this, shape);
         OnPropertiesChange();
     }
 
-    public void OnLeaveShape(ConstructShape shape)
+    public void LeaveShape(ConstructShape shape)
     {
-        if (!shapes.Contains(shape)) throw new Exception("Cannot UnregisterShape(shape), not registered!");
+        Assert.IsTrue(shapes.Contains(shape));
         shapes.Remove(shape);
-        if (IsConstructed) CurrentConstruct.OnUnregisterShape(shape);
+        if (IsConstructed) CurrentConstruct.UnregisterPartShape(this, shape);
         OnPropertiesChange();
     }
 
-    [SerializeField] private WorldObject baseWO;
+    private static Dictionary<PartWeightClass, float> WEIGHT_FORCE_MULT = new()
+    {
+        { PartWeightClass.S, 1.0f },
+        { PartWeightClass.M, 0.8f },
+        { PartWeightClass.L, 0.6f },
+        { PartWeightClass.XL, 0.4f }
+    };
+
+    [Header("References")]
+    [SerializeField] private WorldObject worldObject;
     [SerializeField] private Sprite icon;
-    [SerializeField] private List<TagType> tags = new();
+    [SerializeField] private List<PartTag> tags = new();
     [SerializeField] private List<ConstructMovement> movements = new();
     [SerializeField] private List<ConstructSkill> skills = new();
     [SerializeField] private List<ConstructShape> shapes = new();
 
-    private static WeightClassType GetWeightClass(float weight)
+    private static PartWeightClass GetWeightClass(float weight)
     {
-        if (weight <= 5f) return WeightClassType.S;
-        if (weight <= 25f) return WeightClassType.M;
-        return WeightClassType.L;
+        if (weight <= 5f) return PartWeightClass.S;
+        if (weight <= 25f) return PartWeightClass.M;
+        return PartWeightClass.L;
     }
 
     private void Awake()
     {
         // Initialize physical properties
-        baseWO.InitPhysical();
-        WeightClass = GetWeightClass(baseWO.Weight);
-        ConstructPart.Parts.Add(this);
+        worldObject.InitPhysical();
+        WeightClass = GetWeightClass(worldObject.Weight);
+        ConstructPart.GlobalParts.Add(this);
     }
 
-    public void OnDestroy()
+    private void OnDestroy()
     {
-        ConstructPart.Parts.Remove(this);
+        ConstructPart.GlobalParts.Remove(this);
+    }
+
+    private void ReleaseControl()
+    {
+        Assert.IsTrue(IsControlled);
+        CurrentController = null;
+    }
+
+    private void AddMovement(ConstructMovement movement)
+    {
+        Assert.IsFalse(movements.Contains(movement));
+        movements.Add(movement);
+        if (IsConstructed) CurrentConstruct.RegisterPartMovement(this, movement);
+        OnPropertiesChange();
+    }
+
+    private void RemoveMovement(ConstructMovement movement)
+    {
+        Assert.IsTrue(movements.Contains(movement));
+        movements.Remove(movement);
+        if (IsConstructed) CurrentConstruct.UnregisterPartMovement(this, movement);
+        OnPropertiesChange();
+    }
+
+    private void AddSkill(ConstructSkill skill)
+    {
+        Assert.IsFalse(skills.Contains(skill));
+        skills.Add(skill);
+        if (IsConstructed) CurrentConstruct.RegisterPartSkill(this, skill);
+        OnPropertiesChange();
+    }
+
+    private void RemoveSkill(ConstructSkill skill)
+    {
+        Assert.IsTrue(skills.Contains(skill));
+        skills.Remove(skill);
+        if (IsConstructed) CurrentConstruct.UnregisterPartSkill(this, skill);
     }
 
     private void OnDrawGizmos()
     {
         // TODO: Draw indicators for constructed / controlled / controlled type
+    }
+}
+
+public partial class ConstructPart : MonoBehaviour
+{
+    public class PhysicalHandle
+    {
+        public bool IsValid { get; private set; } = true;
+        public ConstructPart Part { get; private set; }
+
+        public PhysicalHandle(ConstructPart part)
+        {
+            Part = part;
+        }
+
+        public void Release()
+        {
+            Assert.IsTrue(IsValid);
+            ResetPhysics();
+            Part.ReleaseControl();
+            IsValid = false;
+        }
+
+        public void AddWeightedForce(Vector3 force)
+        {
+            Assert.IsTrue(IsValid);
+            Part.worldObject.RB.AddForce(force * WEIGHT_FORCE_MULT[Part.WeightClass], ForceMode.VelocityChange);
+        }
+
+        public void AddWeightedTorque(Vector3 torque)
+        {
+            Assert.IsTrue(IsValid);
+            Part.worldObject.RB.AddTorque(torque * WEIGHT_FORCE_MULT[Part.WeightClass], ForceMode.VelocityChange);
+        }
+
+        public void SetPhysicsMode(bool isKinematic, bool useGravity)
+        {
+            Assert.IsTrue(IsValid);
+            Part.worldObject.RB.isKinematic = isKinematic;
+            Part.worldObject.RB.useGravity = useGravity;
+        }
+
+        public void SetPhysicsProperties(float drag, float angularDrag)
+        {
+            Assert.IsTrue(IsValid);
+            Part.worldObject.RB.drag = drag;
+            Part.worldObject.RB.angularDrag = angularDrag;
+        }
+
+        public void SetEnableCollisions(bool enabled)
+        {
+            Assert.IsTrue(IsValid);
+            Part.worldObject.RB.detectCollisions = enabled;
+        }
+
+        public void ResetPhysics()
+        {
+            Assert.IsTrue(IsValid);
+            SetPhysicsMode(false, true);
+            SetPhysicsProperties(0.0f, 0.0f);
+            SetEnableCollisions(true);
+        }
     }
 }

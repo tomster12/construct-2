@@ -1,26 +1,21 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
 public abstract class ConstructMovement : MonoBehaviour, IPartController
 {
-    public UnityAction OnChangeControlling = delegate { };
-    public abstract bool IsControlling { get; protected set; }
+    public UnityAction<bool> OnStateChange { get; set; } = delegate { };
+    public bool IsActive { get; protected set; }
 
     public abstract void Move(Vector3 dir);
 
     public abstract void Aim(Vector3 pos);
 
-    public abstract void SetControlling();
+    public abstract bool CanActivate();
 
-    public abstract void UnsetControlling();
+    public abstract void Activate();
 
-    public abstract bool CanSetControlling();
-
-    public abstract bool CanUnsetControlling();
-
-    public abstract bool CanEnterForging();
-
-    public abstract bool CanExitForging();
+    public abstract void Deactivate();
 
     public abstract Vector3 GetCentre();
 }
