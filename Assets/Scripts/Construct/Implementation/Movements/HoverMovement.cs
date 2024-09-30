@@ -45,8 +45,6 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
 
     public override void Deactivate()
     {
-        Debug.Log("Deactivate");
-
         Assert.IsTrue(IsActive);
         partPH.Release();
         IsActive = false;
