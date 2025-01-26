@@ -10,7 +10,7 @@ public class ConstructShapeUI : MonoBehaviour
         string prefabName;
         if (shape is AttachmentShape)
         {
-            prefabName = "Construct Shape UI Attachment";
+            prefabName = "Construct Shape UI (AttachmentShape)";
         }
         else
         {
@@ -28,7 +28,7 @@ public class ConstructShapeUI : MonoBehaviour
     {
         this.shape = shape;
         this.shape.OnPartsChange += Redraw;
-        PlayerConstructController.Instance.OnInspectedConstructionsChange += OnInspectedConstructionsChange;
+        PlayerConstructController.Instance.OnAvailableConstructionsChange += OnInspectedConstructionsChange;
         Redraw();
     }
 
@@ -75,7 +75,7 @@ public class ConstructShapeUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        PlayerConstructController.Instance.OnInspectedConstructionsChange -= OnInspectedConstructionsChange;
+        PlayerConstructController.Instance.OnAvailableConstructionsChange -= OnInspectedConstructionsChange;
         shape.OnPartsChange -= Redraw;
         shape = null;
     }

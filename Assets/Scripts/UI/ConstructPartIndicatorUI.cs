@@ -1,15 +1,13 @@
 using UnityEngine;
 
-public class PartInspectorUI : MonoBehaviour
+public class ConstructPartIndicatorUI : MonoBehaviour
 {
     public void Init(ConstructPart part)
     {
-        this.partView.Init(part);
         this.part = part;
     }
 
     [Header("References")]
-    [SerializeField] private ConstructPartUI partView;
     [SerializeField] private Transform billboard;
 
     private ConstructPart part;

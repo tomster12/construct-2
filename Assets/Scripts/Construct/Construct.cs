@@ -1,10 +1,4 @@
-using Mono.Reflection;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
@@ -37,8 +31,11 @@ public class Construct : MonoBehaviour
     public void InitCore(ConstructPart corePart)
     {
         Assert.IsTrue(corePart != null);
+
         CorePart = corePart;
         AddPart(CorePart);
+        OnConstructChange();
+
         State = ConstructState.Active;
         UpdatePrimaryMovement();
     }
@@ -89,16 +86,17 @@ public class Construct : MonoBehaviour
 
     public Construction[] GetAvailableConstructions(ConstructPart targetPart)
     {
+        // We want all constructions either on the construct or on the shape
         List<Construction> AvailableConstructions = new();
 
-        // Find all construct shapes that targetted parts fits with
+        // Find which of our shapes the targetted parts fits with
         foreach (ConstructShape shape in SubscribedShapes.Keys)
         {
             (bool canConstruct, int slot) = shape.CanConstructWith(targetPart);
             if (canConstruct) AvailableConstructions.Add(new Construction { shape = shape, part = targetPart, slot = slot });
         }
 
-        // Find all shapes  in the target part which some construct part fits with
+        // Find which shapes in the target part which some of our parts fit with
         foreach (ConstructShape shape in targetPart.Shapes)
         {
             foreach (ConstructPart part in Parts)

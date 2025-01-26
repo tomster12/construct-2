@@ -19,8 +19,9 @@ public partial class ConstructPart : MonoBehaviour
 
     public UnityAction OnPropertiesChange = delegate { };
     public WorldObject WO => worldObject;
-    public Sprite Icon => icon;
+
     public List<PartTag> Tags => tags;
+
     public List<ConstructShape> Shapes => shapes;
     public PartWeightClass WeightClass { get; private set; } = PartWeightClass.S;
     public int Level { get; private set; } = 1;
@@ -90,7 +91,6 @@ public partial class ConstructPart : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private WorldObject worldObject;
-    [SerializeField] private Sprite icon;
     [SerializeField] private List<PartTag> tags = new();
     [SerializeField] private List<ConstructMovement> movements = new();
     [SerializeField] private List<ConstructSkill> skills = new();

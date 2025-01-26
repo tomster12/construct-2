@@ -162,7 +162,7 @@ GameObject:
   - component: {fileID: 6920077115849858957}
   - component: {fileID: 4901774158391544141}
   m_Layer: 0
-  m_Name: Construct Shape UI Attachment
+  m_Name: Construct Shape UI (AttachmentShape)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

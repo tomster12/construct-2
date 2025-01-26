@@ -9,16 +9,9 @@ public class ConstructPartUI : MonoBehaviour
         Redraw();
     }
 
-    [Header("Prefabs")]
-    [SerializeField] private GameObject shapePrefab;
-
     [Header("References")]
     [SerializeField] private TMPro.TextMeshProUGUI levelText;
-    [SerializeField] private UnityEngine.UI.Image xpGaugeImage;
-    [SerializeField] private UnityEngine.UI.Image iconImage;
     [SerializeField] private TMPro.TextMeshProUGUI nameText;
-    [SerializeField] private TMPro.TextMeshProUGUI weightClassText;
-    [SerializeField] private GameObject shapesSeperator;
     [SerializeField] private GameObject shapesParent;
 
     private ConstructPart part;
@@ -27,14 +20,11 @@ public class ConstructPartUI : MonoBehaviour
     {
         // Set quick properties
         levelText.text = part.Level.ToString();
-        iconImage.sprite = part.Icon;
         nameText.text = part.gameObject.name;
-        weightClassText.text = "(" + part.WeightClass.ToString() + ")";
-        xpGaugeImage.fillAmount = part.XP / part.RequiredXP;
+        //xpGaugeImage.fillAmount = part.XP / part.RequiredXP;
 
         // Handle updating of shapes
         shapesParent.SetActive(part.Shapes.Count > 0);
-        shapesSeperator.SetActive(shapesParent.activeSelf);
         foreach (Transform child in shapesParent.transform)
         {
             Destroy(child.gameObject);
