@@ -12,6 +12,6 @@ public class DummySkill : ConstructSkill
 
     public override void InputDown()
     {
-        Debug.Log("DummySkill InputDown");
+        //Debug.Log("DummySkill InputDown");
     }
 }

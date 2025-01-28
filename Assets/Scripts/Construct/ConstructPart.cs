@@ -17,68 +17,61 @@ public partial class ConstructPart : MonoBehaviour
 {
     public static List<ConstructPart> GlobalParts = new List<ConstructPart>();
 
-    public UnityAction OnPropertiesChange = delegate { };
+    public UnityAction<ConstructPart, EventType, ConstructShape> OnShapeEvent = delegate { };
+    public UnityAction<ConstructPart, EventType, ConstructMovement> OnMovementEvent = delegate { };
+    public UnityAction<ConstructPart, EventType, ConstructSkill> OnSkillEvent = delegate { };
+
+    public enum EventType
+    { Add, Remove, Change }
+
     public WorldObject WO => worldObject;
-
     public List<PartTag> Tags => tags;
-
+    public List<ConstructMovement> Movements => movements;
     public List<ConstructShape> Shapes => shapes;
-    public PartWeightClass WeightClass { get; private set; } = PartWeightClass.S;
-    public int Level { get; private set; } = 1;
-    public float Health { get; private set; } = 1.0f;
-    public float XP { get; private set; } = 0.6f;
-    public float RequiredXP => 1.0f + Level * 0.5f;
-    public float MaxHealth { get; private set; } = 1.0f;
-    public Construct CurrentConstruct { get; private set; } = null;
-    public IPartController CurrentController { get; private set; } = null;
-    public bool IsConstructed => CurrentConstruct != null;
+    public List<ConstructSkill> Skills => skills;
+    public IPartController CurrentController => controller;
+    public bool IsConstructed => construct != null;
     public bool IsControlled => CurrentController != null;
     public bool CanControl => !IsControlled;
+    public PartWeightClass WeightClass => weightClass;
+    public int Level => level;
 
     public PhysicalHandle TakeControl(IPartController controller)
     {
         Assert.IsTrue(CanControl);
-        CurrentController = controller;
+        this.controller = controller;
         return new PhysicalHandle(this);
+    }
+
+    public void JoinConstruct(Construct construct, bool triggerEvents = false) // Expects caller to be Construct
+    {
+        Assert.IsNull(this.construct);
+        this.construct = construct;
+    }
+
+    public void LeaveConstruct(Construct construct, bool triggerEvents = false) // Expects caller to be Construct
+    {
+        Assert.IsTrue(this.construct == construct);
+        this.construct = null;
+    }
+
+    public void JoinShape(ConstructShape shape) // Expects caller to be ConstructShape
+    {
+        Assert.IsFalse(shapes.Contains(shape));
+        shapes.Add(shape);
+        OnShapeEvent(this, EventType.Add, shape);
+    }
+
+    public void LeaveShape(ConstructShape shape) // Expects caller to be ConstructShape
+    {
+        Assert.IsTrue(shapes.Contains(shape));
+        shapes.Remove(shape);
+        OnShapeEvent(this, EventType.Remove, shape);
     }
 
     public Vector3 GetCentre()
     {
         return worldObject.transform.position;
-    }
-
-    public void OnJoinConstruct(Construct construct)
-    {
-        Assert.IsNull(CurrentConstruct);
-        CurrentConstruct = construct;
-        foreach (ConstructMovement movement in movements) construct.RegisterPartMovement(this, movement);
-        foreach (ConstructSkill skill in skills) construct.RegisterPartSkill(this, skill);
-        foreach (ConstructShape shape in shapes) construct.RegisterPartShape(this, shape);
-    }
-
-    public void OnLeaveConstruct(Construct construct)
-    {
-        Assert.IsTrue(CurrentConstruct == construct);
-        foreach (ConstructMovement movement in movements) construct.UnregisterPartMovement(this, movement);
-        foreach (ConstructSkill skill in skills) construct.UnregisterPartSkill(this, skill);
-        foreach (ConstructShape shape in shapes) construct.UnregisterPartShape(this, shape);
-        CurrentConstruct = null;
-    }
-
-    public void JoinShape(ConstructShape shape)
-    {
-        Assert.IsFalse(shapes.Contains(shape));
-        shapes.Add(shape);
-        if (IsConstructed) CurrentConstruct.RegisterPartShape(this, shape);
-        OnPropertiesChange();
-    }
-
-    public void LeaveShape(ConstructShape shape)
-    {
-        Assert.IsTrue(shapes.Contains(shape));
-        shapes.Remove(shape);
-        if (IsConstructed) CurrentConstruct.UnregisterPartShape(this, shape);
-        OnPropertiesChange();
     }
 
     private static Dictionary<PartWeightClass, float> WEIGHT_FORCE_MULT = new()
@@ -96,6 +89,15 @@ public partial class ConstructPart : MonoBehaviour
     [SerializeField] private List<ConstructSkill> skills = new();
     [SerializeField] private List<ConstructShape> shapes = new();
 
+    private Construct construct = null;
+    private IPartController controller = null;
+    private int level = 1;
+    private PartWeightClass weightClass = PartWeightClass.S;
+    //private float health = 1.0f;
+    //private float xp = 0.6f;
+    //private float maxHealth = 1.0f;
+    //private float RequiredXP => 1.0f + level * 0.5f;
+
     private static PartWeightClass GetWeightClass(float weight)
     {
         if (weight <= 5f) return PartWeightClass.S;
@@ -107,7 +109,7 @@ public partial class ConstructPart : MonoBehaviour
     {
         // Initialize physical properties
         worldObject.InitPhysical();
-        WeightClass = GetWeightClass(worldObject.Weight);
+        weightClass = GetWeightClass(worldObject.Weight);
         ConstructPart.GlobalParts.Add(this);
     }
 
@@ -119,38 +121,35 @@ public partial class ConstructPart : MonoBehaviour
     private void ReleaseControl()
     {
         Assert.IsTrue(IsControlled);
-        CurrentController = null;
+        controller = null;
     }
 
-    private void AddMovement(ConstructMovement movement)
+    private void AddMovement(ConstructMovement movement) // Expects caller to be self
     {
         Assert.IsFalse(movements.Contains(movement));
         movements.Add(movement);
-        if (IsConstructed) CurrentConstruct.RegisterPartMovement(this, movement);
-        OnPropertiesChange();
+        OnMovementEvent(this, EventType.Add, movement);
     }
 
-    private void RemoveMovement(ConstructMovement movement)
+    private void RemoveMovement(ConstructMovement movement) // Expects caller to be self
     {
         Assert.IsTrue(movements.Contains(movement));
         movements.Remove(movement);
-        if (IsConstructed) CurrentConstruct.UnregisterPartMovement(this, movement);
-        OnPropertiesChange();
+        OnMovementEvent(this, EventType.Remove, movement);
     }
 
-    private void AddSkill(ConstructSkill skill)
+    private void AddSkill(ConstructSkill skill) // Expects caller to be self
     {
         Assert.IsFalse(skills.Contains(skill));
         skills.Add(skill);
-        if (IsConstructed) CurrentConstruct.RegisterPartSkill(this, skill);
-        OnPropertiesChange();
+        OnSkillEvent(this, EventType.Add, skill);
     }
 
-    private void RemoveSkill(ConstructSkill skill)
+    private void RemoveSkill(ConstructSkill skill) // Expects caller to be self
     {
         Assert.IsTrue(skills.Contains(skill));
         skills.Remove(skill);
-        if (IsConstructed) CurrentConstruct.UnregisterPartSkill(this, skill);
+        OnSkillEvent(this, EventType.Remove, skill);
     }
 
     private void OnDrawGizmos()
@@ -163,13 +162,13 @@ public partial class ConstructPart : MonoBehaviour
 {
     public class PhysicalHandle
     {
-        public bool IsValid { get; private set; } = true;
-        public ConstructPart Part { get; private set; }
-
         public PhysicalHandle(ConstructPart part)
         {
             Part = part;
         }
+
+        public bool IsValid { get; private set; } = true;
+        public ConstructPart Part { get; private set; }
 
         public void Release()
         {

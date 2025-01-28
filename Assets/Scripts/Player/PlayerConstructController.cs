@@ -7,7 +7,8 @@ public class PlayerConstructController : MonoBehaviour
 {
     public static PlayerConstructController Instance;
 
-    public UnityAction<Construction[]> OnAvailableConstructionsChange { get; set; } = delegate { };
+    public UnityAction<Construction[]> OnAvailableConstructionsChange = delegate { };
+
     public Raycaster Raycaster => raycaster;
     public Construct Construct => construct;
 
@@ -16,7 +17,7 @@ public class PlayerConstructController : MonoBehaviour
         camTarget = targetWO;
         camOffsetBounds = targetWO.MaxExtentXZ * camOffsetBoundsMult + camOffsetAdditional;
         camZoomDistance = targetWO.MaxExtentXZ * 15.0f;
-        UpdateCamDynamics();
+        UpdateCamera();
     }
 
     private static readonly Dictionary<PlayerInput, int> SKILL_BINDINGS = new Dictionary<PlayerInput, int>()
@@ -36,7 +37,10 @@ public class PlayerConstructController : MonoBehaviour
     [SerializeField] private Transform camParent;
     [SerializeField] private Construct construct;
     [SerializeField] private ConstructPart corePart;
-    [SerializeField] private RectTransform constructPartUIListParent;
+    [SerializeField] private RectTransform constructPartListUIParent;
+    [SerializeField] private RectTransform constantReticle;
+    [SerializeField] private RectTransform dynamicReticle;
+    [SerializeField] private PlayerConstructPartPromptUI partPrompt;
 
     [Header("Prefabs")]
     [SerializeField] private GameObject constructPartIndicatorUIPrefab;
@@ -46,6 +50,7 @@ public class PlayerConstructController : MonoBehaviour
     [SerializeField] private float camZoomAcc = 600.0f;
     [SerializeField] private float camZoomDrag = 0.95f;
     [SerializeField] private float camZoomVelMax = 0.1f;
+    [SerializeField] private float reticleLerp = 5.0f;
     [SerializeField] private Vector3 camOffsetBoundsMult = new Vector3(1.0f, 0.5f, -1.0f);
     [SerializeField] private Vector3 camOffsetAdditional = new Vector3(1.0f, 0.0f, 0.0f);
     [SerializeField] private float camAimSpeed = 40.0f;
@@ -54,15 +59,19 @@ public class PlayerConstructController : MonoBehaviour
     [SerializeField] private float constructPartListUIHeight = 43.0f;
     [SerializeField] private float constructPartListUIPadding = 5.0f;
 
-    private Raycaster raycaster;
     private Vector3 movementInput;
     private Vector3 aimInput;
+    private Raycaster raycaster;
+    private Construction[] availableConstructions = new Construction[0];
+
     private WorldObject camTarget;
     private Vector3 camOffsetBounds;
     private float camZoomVel = 0.0f;
     private float camZoomDistance = 5.0f;
-    private Dictionary<ConstructPart, ConstructPartIndicatorUI> nearbyParts;
-    private Construction[] availableConstructions = new Construction[0];
+    private float camRotX = 0.0f;
+    private float camRotY = 0.0f;
+    private Dictionary<ConstructPart, ConstructPartIndicatorUI> partIndicators;
+    private List<PlayerConstructPartUI> partListUI = new();
 
     private void Awake()
     {
@@ -74,24 +83,35 @@ public class PlayerConstructController : MonoBehaviour
     {
         cam.transform.parent = camParent;
         cam.transform.localPosition = Vector3.zero;
+
+        // Ensure it is empty on start
+        foreach (Transform child in constructPartListUIParent) Destroy(child.gameObject);
+
         raycaster = new Raycaster(cam);
         raycaster.OnTargetChange += OnRaycasterTargetChange;
-        construct.OnConstructChange += OnConstructChange;
+
+        construct.OnPartEvent += OnConstructPartEvent;
+        construct.OnMovementEvent += OnConstructMovementEvent;
+        construct.OnShapeEvent += OnConstructShapeEvent;
         construct.InitCore(corePart);
+
+        partPrompt.Init(this);
+
         SetTarget(corePart.WO);
         LockMouse();
+    }
+
+    private void OnDestroy()
+    {
+        // TODO: Unsubscribe from events. PlayerConstructController will eventually not exist during main menu etc.
     }
 
     private void Update()
     {
         HandleInput();
-        UpdateCamDynamics();
-        UpdateNearbyPartIndicatorUIs();
-    }
-
-    private void OnDestroy()
-    {
-        construct.OnConstructChange -= OnConstructChange;
+        UpdateCamera();
+        UpdatePartIndicators();
+        UpdateReticle();
     }
 
     private void HandleInput()
@@ -120,7 +140,7 @@ public class PlayerConstructController : MonoBehaviour
         }
     }
 
-    private void UpdateCamDynamics()
+    private void UpdateCamera()
     {
         // Update cam zoom
         camZoomVel = Mathf.Clamp(camZoomVel, -camZoomVelMax, camZoomVelMax);
@@ -128,8 +148,11 @@ public class PlayerConstructController : MonoBehaviour
         camZoomVel *= camZoomDrag;
 
         // Update cam rotation
-        camParent.transform.RotateAround(camParent.transform.position, Vector3.up, aimInput.x * Time.deltaTime * camAimSpeed);
-        camParent.transform.RotateAround(camParent.transform.position, camParent.transform.right, -aimInput.y * Time.deltaTime * camAimSpeed);
+        float diffRotX = -aimInput.y * camAimSpeed * Time.deltaTime;
+        float diffRotY = aimInput.x * camAimSpeed * Time.deltaTime;
+        camRotX = Mathf.Clamp(camRotX + diffRotX, -85.0f, 85.0f);
+        camRotY += diffRotY;
+        camParent.transform.localRotation = Quaternion.Euler(camRotX, camRotY, 0.0f);
 
         // Update cam position
         camParent.transform.position = camTarget.transform.position;
@@ -139,39 +162,63 @@ public class PlayerConstructController : MonoBehaviour
         raycaster.Update();
     }
 
-    private void UpdateNearbyPartIndicatorUIs()
+    private void UpdatePartIndicators()
     {
-        nearbyParts ??= new Dictionary<ConstructPart, ConstructPartIndicatorUI>();
-
+        // Find all nearby parts outside the construct
+        partIndicators ??= new Dictionary<ConstructPart, ConstructPartIndicatorUI>();
         Vector3 centre = construct.GetCentre();
         foreach (ConstructPart part in ConstructPart.GlobalParts)
         {
-            // If part is close enough create an indicator UI
             if (Vector3.Distance(centre, part.WO.transform.position) < nearbyPartRadius && !construct.Parts.Contains(part))
             {
-                if (!nearbyParts.ContainsKey(part))
+                // Create an indicator if it doesn't exist
+                if (!partIndicators.ContainsKey(part))
                 {
                     ConstructPartIndicatorUI indicator = Instantiate(constructPartIndicatorUIPrefab, transform).GetComponent<ConstructPartIndicatorUI>();
                     indicator.Init(part);
-                    nearbyParts.Add(part, indicator);
+                    partIndicators.Add(part, indicator);
                 }
+
+                // Highlight the indicator if it's targeted
+                partIndicators[part].SetHighlighted(raycaster.HitConstructPart == part);
             }
 
-            // Otherwise remove the UI if it exists
-            else if (nearbyParts.ContainsKey(part))
+            // Remove indicators for any parts that are no longer nearby
+            else if (partIndicators.ContainsKey(part))
             {
-                Destroy(nearbyParts[part].gameObject);
-                nearbyParts.Remove(part);
+                Destroy(partIndicators[part].gameObject);
+                partIndicators.Remove(part);
             }
         }
     }
 
     private void UpdateAvailableConstructions()
     {
-        // If not targetting clear and return
-        if (raycaster.HitConstructPart == null) availableConstructions = new Construction[0];
-        else availableConstructions = construct.GetAvailableConstructions(raycaster.HitConstructPart);
-        OnAvailableConstructionsChange(availableConstructions);
+        // If targetting a part calculate available constructions with that part
+        if (raycaster.HitConstructPart == null)
+        {
+            if (availableConstructions.Length != 0)
+            {
+                availableConstructions = new Construction[0];
+                OnAvailableConstructionsChange(availableConstructions);
+            }
+        }
+        else
+        {
+            availableConstructions = construct.GetAvailableConstructions(raycaster.HitConstructPart);
+            OnAvailableConstructionsChange(availableConstructions);
+        }
+    }
+
+    private void UpdateReticle()
+    {
+        // Keep the constant reticle in the centre of the screen
+        Vector3 target = new(Screen.width / 2, Screen.height / 2, 0.0f);
+        constantReticle.anchoredPosition = target;
+
+        // If highlighting a part then centre the dynamic reticle on the part
+        if (raycaster.HitConstructPart != null) target = cam.WorldToScreenPoint(raycaster.HitConstructPart.WO.transform.position);
+        dynamicReticle.anchoredPosition = Vector2.Lerp(dynamicReticle.anchoredPosition, target, reticleLerp * Time.deltaTime);
     }
 
     private void FixedUpdate()
@@ -193,35 +240,53 @@ public class PlayerConstructController : MonoBehaviour
 
     private void RedrawConstructPartListUI()
     {
-        foreach (Transform child in constructPartUIListParent)
-
-        {
-            Destroy(child.gameObject);
-        }
+        // Delete all the old part UIs
+        foreach (PlayerConstructPartUI partUI in partListUI) Destroy(partUI.gameObject);
+        partListUI.Clear();
 
         // Create a new part UI for each part in the construct
         for (int i = 0; i < Construct.Parts.Count; i++)
         {
             ConstructPart part = Construct.Parts[i];
 
-            GameObject partUIObject = Instantiate(constructPartUIPrefab, constructPartUIListParent);
+            GameObject partUIObject = Instantiate(constructPartUIPrefab, constructPartListUIParent);
             RectTransform rectTfm = partUIObject.GetComponent<RectTransform>();
-            ConstructPartUI partUI = partUIObject.GetComponent<ConstructPartUI>();
+            PlayerConstructPartUI partUI = partUIObject.GetComponent<PlayerConstructPartUI>();
+
+            // Manually calculate list offsets
             rectTfm.anchoredPosition = new Vector2(
                 constructPartListUIPadding,
                 constructPartListUIPadding + i * (constructPartListUIGap + constructPartListUIHeight));
 
-            partUI.Init(part);
+            partUI.Init(part, this);
+            partListUI.Add(partUI);
         }
     }
 
     private void OnRaycasterTargetChange()
     {
+        partPrompt.SetTarget(raycaster.HitConstructPart);
         UpdateAvailableConstructions();
     }
 
-    private void OnConstructChange()
+    private void OnConstructPartEvent(Construct.EventType type, ConstructPart part)
     {
+        // When a part joins or leaves we want to redraw the part list UI
+        Assert.IsTrue(type == Construct.EventType.Add || type == Construct.EventType.Remove);
         RedrawConstructPartListUI();
+
+        // We then should also recalculate what available constructions we have
+        UpdateAvailableConstructions();
+    }
+
+    private void OnConstructMovementEvent(Construct.EventType type, ConstructMovement movement)
+    {
+        // For now if a movement is added / removed we have no UI that depends on this so do nothing
+    }
+
+    private void OnConstructShapeEvent(Construct.EventType type, ConstructShape shape)
+    {
+        // With shapes added / removed / changed we want to recalculate available constructions
+        UpdateAvailableConstructions();
     }
 }
