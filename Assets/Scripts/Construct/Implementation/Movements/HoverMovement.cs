@@ -131,7 +131,7 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
         // Lean towards RB with a torque
         if (isMoving)
         {
-            Vector3 axis = -Vector3.Cross(part.WO.RB.velocity, Vector3.up).normalized;
+            Vector3 axis = -Vector3.Cross(part.WO.RB.linearVelocity, Vector3.up).normalized;
             partPH.AddWeightedTorque(axis * tiltForce);
         }
     }

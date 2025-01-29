@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4303358968132369019}
   - component: {fileID: 2459502350018710840}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Icon FG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -49,6 +49,9 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -94,7 +97,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4970597355208380044}
   - component: {fileID: 2679736201827723976}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Construct Part Indicator UI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -153,7 +156,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7354675519957195955}
   - component: {fileID: 5634526333411230727}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Icon BG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -192,6 +195,9 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:

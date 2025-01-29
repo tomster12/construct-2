@@ -70,8 +70,9 @@ public class PlayerConstructController : MonoBehaviour
     private float camZoomDistance = 5.0f;
     private float camRotX = 0.0f;
     private float camRotY = 0.0f;
-    private Dictionary<ConstructPart, ConstructPartIndicatorUI> partIndicators;
-    private List<PlayerConstructPartUI> partListUI = new();
+
+    private Dictionary<ConstructPart, ConstructPartIndicatorUI> partIndicatorUIs;
+    private List<PlayerConstructPartUI> partListUIs = new();
 
     private void Awake()
     {
@@ -165,29 +166,29 @@ public class PlayerConstructController : MonoBehaviour
     private void UpdatePartIndicators()
     {
         // Find all nearby parts outside the construct
-        partIndicators ??= new Dictionary<ConstructPart, ConstructPartIndicatorUI>();
+        partIndicatorUIs ??= new Dictionary<ConstructPart, ConstructPartIndicatorUI>();
         Vector3 centre = construct.GetCentre();
         foreach (ConstructPart part in ConstructPart.GlobalParts)
         {
             if (Vector3.Distance(centre, part.WO.transform.position) < nearbyPartRadius && !construct.Parts.Contains(part))
             {
                 // Create an indicator if it doesn't exist
-                if (!partIndicators.ContainsKey(part))
+                if (!partIndicatorUIs.ContainsKey(part))
                 {
                     ConstructPartIndicatorUI indicator = Instantiate(constructPartIndicatorUIPrefab, transform).GetComponent<ConstructPartIndicatorUI>();
                     indicator.Init(part);
-                    partIndicators.Add(part, indicator);
+                    partIndicatorUIs.Add(part, indicator);
                 }
 
                 // Highlight the indicator if it's targeted
-                partIndicators[part].SetHighlighted(raycaster.HitConstructPart == part);
+                partIndicatorUIs[part].SetHighlighted(raycaster.HitConstructPart == part);
             }
 
             // Remove indicators for any parts that are no longer nearby
-            else if (partIndicators.ContainsKey(part))
+            else if (partIndicatorUIs.ContainsKey(part))
             {
-                Destroy(partIndicators[part].gameObject);
-                partIndicators.Remove(part);
+                Destroy(partIndicatorUIs[part].gameObject);
+                partIndicatorUIs.Remove(part);
             }
         }
     }
@@ -241,8 +242,8 @@ public class PlayerConstructController : MonoBehaviour
     private void RedrawConstructPartListUI()
     {
         // Delete all the old part UIs
-        foreach (PlayerConstructPartUI partUI in partListUI) Destroy(partUI.gameObject);
-        partListUI.Clear();
+        foreach (PlayerConstructPartUI partUI in partListUIs) Destroy(partUI.gameObject);
+        partListUIs.Clear();
 
         // Create a new part UI for each part in the construct
         for (int i = 0; i < Construct.Parts.Count; i++)
@@ -259,7 +260,7 @@ public class PlayerConstructController : MonoBehaviour
                 constructPartListUIPadding + i * (constructPartListUIGap + constructPartListUIHeight));
 
             partUI.Init(part, this);
-            partListUI.Add(partUI);
+            partListUIs.Add(partUI);
         }
     }
 

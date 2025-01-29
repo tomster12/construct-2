@@ -200,8 +200,8 @@ public partial class ConstructPart : MonoBehaviour
         public void SetPhysicsProperties(float drag, float angularDrag)
         {
             Assert.IsTrue(IsValid);
-            Part.worldObject.RB.drag = drag;
-            Part.worldObject.RB.angularDrag = angularDrag;
+            Part.worldObject.RB.linearDamping = drag;
+            Part.worldObject.RB.angularDamping = angularDrag;
         }
 
         public void SetEnableCollisions(bool enabled)
