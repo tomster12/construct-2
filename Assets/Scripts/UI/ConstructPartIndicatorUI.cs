@@ -2,20 +2,6 @@ using UnityEngine;
 
 public class ConstructPartIndicatorUI : MonoBehaviour
 {
-    public void Init(ConstructPart part)
-    {
-        this.part = part;
-        SetHighlighted(false);
-        UpdateBillboard();
-        heightOscStart = Time.time;
-    }
-
-    public void SetHighlighted(bool isHighlighted)
-    {
-        if (isHighlighted == this.isHighlighted) return;
-        this.isHighlighted = isHighlighted;
-    }
-
     [Header("References")]
     [SerializeField] private SpriteRenderer spriteRendererFG;
     [SerializeField] private SpriteRenderer spriteRendererBG;
@@ -36,6 +22,20 @@ public class ConstructPartIndicatorUI : MonoBehaviour
     private ConstructPart part;
     private bool isHighlighted = false;
     private float heightOscStart;
+
+    public void Init(ConstructPart part)
+    {
+        this.part = part;
+        SetHighlighted(false);
+        UpdateBillboard();
+        heightOscStart = Time.time;
+    }
+
+    public void SetHighlighted(bool isHighlighted)
+    {
+        if (isHighlighted == this.isHighlighted) return;
+        this.isHighlighted = isHighlighted;
+    }
 
     private void Update()
     {

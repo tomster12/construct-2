@@ -4,6 +4,17 @@ using System.Linq;
 
 public class PlayerConstructPartUI : MonoBehaviour
 {
+    [Header("References")]
+    [SerializeField] private TMPro.TextMeshProUGUI levelText;
+    [SerializeField] private TMPro.TextMeshProUGUI nameText;
+    [SerializeField] private GameObject shapesParent;
+
+    private ConstructPart part;
+    private PlayerConstructController player;
+    private List<PlayerConstructShapeUI> shapes = new();
+    private Dictionary<ConstructShape, PartConstruction> constructionsMyShapeOtherPart = new();
+    private List<PartConstruction> constructionsOtherShapeThisPart = new();
+
     public void Init(ConstructPart part, PlayerConstructController player)
     {
         this.part = part;
@@ -15,24 +26,13 @@ public class PlayerConstructPartUI : MonoBehaviour
         RedrawProperties();
         RedrawShapes();
 
-        this.part.OnShapeEvent += OnPartShapeEvent;
+        this.part.OnActiveShapeEvent += OnPartShapeEvent;
         this.player.OnAvailableConstructionsChange += OnAvailableConstructionsChange;
     }
 
-    [Header("References")]
-    [SerializeField] private TMPro.TextMeshProUGUI levelText;
-    [SerializeField] private TMPro.TextMeshProUGUI nameText;
-    [SerializeField] private GameObject shapesParent;
-
-    private ConstructPart part;
-    private PlayerConstructController player;
-    private List<PlayerConstructShapeUI> shapes = new();
-    private Dictionary<ConstructShape, Construction> constructionsMyShapeOtherPart = new();
-    private List<Construction> constructionsOtherShapeThisPart = new();
-
     private void OnDestroy()
     {
-        part.OnShapeEvent -= OnPartShapeEvent;
+        part.OnActiveShapeEvent -= OnPartShapeEvent;
         player.OnAvailableConstructionsChange -= OnAvailableConstructionsChange;
     }
 
@@ -53,20 +53,20 @@ public class PlayerConstructPartUI : MonoBehaviour
         shapes.Clear();
 
         // Create new shape UIs
-        foreach (ConstructShape shape in part.Shapes)
+        foreach (ConstructShape shape in part.ActiveShapes)
         {
             PlayerConstructShapeUI shapeUI = PlayerConstructShapeUI.Create(shape, shapesParent.transform);
             shapes.Add(shapeUI);
 
             // Set suggested construction if there is one
-            if (constructionsMyShapeOtherPart.TryGetValue(shape, out Construction construction))
+            if (constructionsMyShapeOtherPart.TryGetValue(shape, out PartConstruction construction))
             {
                 shapeUI.SetSuggestedConstruction(construction);
             }
         }
 
         // Create a shape UI for each suggested construction this part can fit into
-        foreach (Construction construction in constructionsOtherShapeThisPart)
+        foreach (PartConstruction construction in constructionsOtherShapeThisPart)
         {
             PlayerConstructShapeUI shapeUI = PlayerConstructShapeUI.Create(construction.shape, shapesParent.transform);
             shapes.Add(shapeUI);
@@ -81,22 +81,22 @@ public class PlayerConstructPartUI : MonoBehaviour
         RedrawShapes();
     }
 
-    private void OnAvailableConstructionsChange(Construction[] constructions)
+    private void OnAvailableConstructionsChange(PartConstruction[] constructions)
     {
         constructionsMyShapeOtherPart.Clear();
         constructionsOtherShapeThisPart.Clear();
 
         // We need to update the colours on the relevant shape UIs if another part can fit in them
-        foreach (Construction construction in constructions)
+        foreach (PartConstruction construction in constructions)
         {
-            if (part.Shapes.Contains(construction.shape))
+            if (part.ActiveShapes.Contains(construction.shape))
             {
                 constructionsMyShapeOtherPart.Add(construction.shape, construction);
             }
         }
 
         // We need to create new shape UIs for each shape that this part can fit in
-        foreach (Construction construction in constructions)
+        foreach (PartConstruction construction in constructions)
         {
             if (construction.part == part)
             {

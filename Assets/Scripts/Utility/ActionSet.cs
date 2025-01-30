@@ -5,6 +5,12 @@ using UnityEngine.Assertions;
 
 public class ActionSet
 {
+    public int AvailableSlotCount => availableSlots.Count;
+
+    private Action[] actions;
+    private HashSet<int> availableSlots;
+    private int slotCount;
+
     public ActionSet(int slotCount = 5)
     {
         this.slotCount = slotCount;
@@ -12,8 +18,6 @@ public class ActionSet
         this.availableSlots = new HashSet<int>();
         for (int i = 0; i < slotCount; i++) this.availableSlots.Add(i);
     }
-
-    public int AvailableSlotCount => availableSlots.Count;
 
     public Action ActionInputDown(int slot)
     {
@@ -31,7 +35,7 @@ public class ActionSet
         return actions[slot];
     }
 
-    public bool RegisterAction(Action action, int slot = -1)
+    public int RegisterAction(Action action, int slot = -1)
     {
         Assert.IsFalse(action.IsAssigned);
 
@@ -50,7 +54,7 @@ public class ActionSet
         }
 
         action.Assign(this);
-        return true;
+        return slot;
     }
 
     public bool UnregisterAction(Action action)
@@ -73,8 +77,4 @@ public class ActionSet
         availableSlots.Add(slot);
         return true;
     }
-
-    private Action[] actions;
-    private HashSet<int> availableSlots;
-    private int slotCount;
 }

@@ -10,11 +10,14 @@ public class WorldObject : MonoBehaviour
     public Vector3 Extents => Bounds.extents;
     public float MaxExtent => Mathf.Max(Bounds.extents.x, Bounds.extents.y, Bounds.extents.z);
     public float MaxExtentXZ => Mathf.Max(Bounds.extents.x, Bounds.extents.z);
-    public float Weight { get; set; } = 0f;
+    public float Weight => weight;
+
+    private Dictionary<Type, Component> componentCache = new Dictionary<Type, Component>();
+    private float weight = 0.0f;
 
     public void InitPhysical()
     {
-        Weight = RB.mass;
+        weight = RB.mass;
     }
 
     public T GetCachedComponent<T>() where T : Component
@@ -26,6 +29,4 @@ public class WorldObject : MonoBehaviour
         }
         return (T)componentCache[type];
     }
-
-    private Dictionary<Type, Component> componentCache = new Dictionary<Type, Component>();
 }

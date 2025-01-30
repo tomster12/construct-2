@@ -1,6 +1,5 @@
-using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -15,64 +14,29 @@ public enum PartTag
 [RequireComponent(typeof(WorldObject))]
 public partial class ConstructPart : MonoBehaviour
 {
-    public static List<ConstructPart> GlobalParts = new List<ConstructPart>();
-
-    public UnityAction<ConstructPart, EventType, ConstructShape> OnShapeEvent = delegate { };
-    public UnityAction<ConstructPart, EventType, ConstructMovement> OnMovementEvent = delegate { };
-    public UnityAction<ConstructPart, EventType, ConstructSkill> OnSkillEvent = delegate { };
-
     public enum EventType
-    { Add, Remove, Change }
+    { Add, Remove }
 
     public WorldObject WO => worldObject;
     public List<PartTag> Tags => tags;
+    public PartWeightClass WeightClass => weightClass;
+    public int Level => level;
     public List<ConstructMovement> Movements => movements;
-    public List<ConstructShape> Shapes => shapes;
+    public List<ConstructShape> InherentShapes => shapes;
+    public List<ConstructShape> ActiveShapes => activeShapes;
+    public ConstructShape ConstructionDependantShape => constructionDependantShape;
     public List<ConstructSkill> Skills => skills;
     public IPartController CurrentController => controller;
     public bool IsConstructed => construct != null;
     public bool IsControlled => CurrentController != null;
     public bool CanControl => !IsControlled;
-    public PartWeightClass WeightClass => weightClass;
-    public int Level => level;
 
-    public PhysicalHandle TakeControl(IPartController controller)
-    {
-        Assert.IsTrue(CanControl);
-        this.controller = controller;
-        return new PhysicalHandle(this);
-    }
+    public static List<ConstructPart> GlobalParts = new();
 
-    public void JoinConstruct(Construct construct, bool triggerEvents = false) // Expects caller to be Construct
-    {
-        Assert.IsNull(this.construct);
-        this.construct = construct;
-    }
-
-    public void LeaveConstruct(Construct construct, bool triggerEvents = false) // Expects caller to be Construct
-    {
-        Assert.IsTrue(this.construct == construct);
-        this.construct = null;
-    }
-
-    public void JoinShape(ConstructShape shape) // Expects caller to be ConstructShape
-    {
-        Assert.IsFalse(shapes.Contains(shape));
-        shapes.Add(shape);
-        OnShapeEvent(this, EventType.Add, shape);
-    }
-
-    public void LeaveShape(ConstructShape shape) // Expects caller to be ConstructShape
-    {
-        Assert.IsTrue(shapes.Contains(shape));
-        shapes.Remove(shape);
-        OnShapeEvent(this, EventType.Remove, shape);
-    }
-
-    public Vector3 GetCentre()
-    {
-        return worldObject.transform.position;
-    }
+    public UnityAction<ConstructPart, EventType, Construct> OnConstructedChange = delegate { };
+    public UnityAction<ConstructPart, EventType, ConstructShape> OnActiveShapeEvent = delegate { };
+    public UnityAction<ConstructPart, EventType, ConstructMovement> OnMovementEvent = delegate { };
+    public UnityAction<ConstructPart, EventType, ConstructSkill> OnSkillEvent = delegate { };
 
     private static Dictionary<PartWeightClass, float> WEIGHT_FORCE_MULT = new()
     {
@@ -91,12 +55,98 @@ public partial class ConstructPart : MonoBehaviour
 
     private Construct construct = null;
     private IPartController controller = null;
-    private int level = 1;
     private PartWeightClass weightClass = PartWeightClass.S;
-    //private float health = 1.0f;
-    //private float xp = 0.6f;
-    //private float maxHealth = 1.0f;
-    //private float RequiredXP => 1.0f + level * 0.5f;
+    private int level = 1;
+    private float health = 1.0f;
+    private float xp = 0.6f;
+    private float maxHealth = 1.0f;
+    private float RequiredXP => 1.0f + level * 0.5f;
+    private List<ConstructShape> activeShapes = new();
+    private ConstructShape constructionDependantShape = null;
+
+    public PhysicalHandle TakeControl(IPartController controller)
+    {
+        Assert.IsTrue(CanControl);
+        this.controller = controller;
+        return new PhysicalHandle(this);
+    }
+
+    public void NotifyAddedToConstruct(Construct construct) // Expects caller to be Construct
+    {
+        Assert.IsNull(this.construct);
+        this.construct = construct;
+        OnConstructedChange(this, EventType.Add, construct);
+    }
+
+    public void NotifyRemovedFromConstruct(Construct construct) // Expects caller to be Construct
+    {
+        Assert.IsTrue(this.construct == construct);
+        Deconstruct();
+        OnConstructedChange(this, EventType.Remove, construct);
+    }
+
+    public void Deconstruct()
+    {
+        // If this shape is not dependant on a shape then we the core part of a shape
+        // We only set construct to null if we are dependant on a shape
+        if (constructionDependantShape != null)
+        {
+            construct = null;
+            constructionDependantShape = null;
+        }
+
+        // Tell all shapes we involved in (not inherent) we are leaving
+        // This should call NotifyRemovedFromShape() on this part from each of the shapes
+        foreach (var shape in activeShapes)
+        {
+            if (!shapes.Contains(shape))
+            {
+                shape.RemovePart(this);
+                Assert.IsFalse(activeShapes.Contains(shape));
+            }
+        }
+
+        // Similarly tell all of our inherent shapes to deconstruct
+        foreach (var shape in shapes) shape.Deconstruct();
+    }
+
+    public void NotifyAddedToActiveShape(ConstructShape shape) // Expects caller to be ConstructShape
+    {
+        // Can not be added to an existing shape
+        Assert.IsFalse(activeShapes.Contains(shape));
+
+        // If we are not constructed presume that we will be constructed by this shape
+        // This should happen on the OnShapePartsChange() callback
+        if (!IsConstructed)
+        {
+            Assert.IsNull(constructionDependantShape);
+            constructionDependantShape = shape;
+        }
+
+        activeShapes.Add(shape);
+        OnActiveShapeEvent(this, EventType.Add, shape);
+    }
+
+    public void NotifyRemovedFromActiveShape(ConstructShape shape) // Expects caller to be ConstructShape
+    {
+        // Can only be removed from an active shape
+        Assert.IsTrue(activeShapes.Contains(shape));
+        activeShapes.Remove(shape);
+        OnActiveShapeEvent(this, EventType.Remove, shape);
+
+        // If we are dependant on this shape then expect to be removed from the construct
+        // The construct should pick this up in the OnActiveShapeEvent
+        if (shape == constructionDependantShape)
+        {
+            Assert.IsNull(construct);
+            constructionDependantShape = null;
+        }
+    }
+
+    public Vector3 GetCentre()
+    {
+        return worldObject.transform.position;
+    }
 
     private static PartWeightClass GetWeightClass(float weight)
     {
@@ -162,13 +212,13 @@ public partial class ConstructPart : MonoBehaviour
 {
     public class PhysicalHandle
     {
+        public bool IsValid { get; private set; } = true;
+        public ConstructPart Part { get; private set; }
+
         public PhysicalHandle(ConstructPart part)
         {
             Part = part;
         }
-
-        public bool IsValid { get; private set; } = true;
-        public ConstructPart Part { get; private set; }
 
         public void Release()
         {

@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
 
-public struct Construction
+public struct PartConstruction
 {
     public ConstructShape shape;
     public ConstructPart part;
@@ -13,68 +13,31 @@ public struct Construction
 
 public class Construct : MonoBehaviour
 {
-    public UnityAction<EventType, ConstructPart> OnPartEvent = delegate { };
-    public UnityAction<EventType, ConstructMovement> OnMovementEvent = delegate { };
-    public UnityAction<EventType, ConstructSkill> OnSkillEvent = delegate { };
-    public UnityAction<EventType, ConstructShape> OnShapeEvent = delegate { };
-    public UnityAction<State> OnStateChange = delegate { };
-
-    public enum State
-    {
-        Active, Forging, Inactive
-    }
-
     public enum EventType
-    {
-        Add, Remove, Change
-    }
+    { Add, Remove }
 
+    public UnityAction<EventType, ConstructPart> OnPartEvent = delegate { };
+    public UnityAction<EventType, ConstructSkill> OnSkillEvent = delegate { };
+    public UnityAction<EventType, ConstructMovement> OnMovementEvent = delegate { };
+    public UnityAction<EventType, ConstructShape, ConstructPart> OnShapeEvent = delegate { };
+    public UnityAction<EventType, ConstructShape, ConstructPart> OnActiveShapeEvent = delegate { };
+    public UnityAction<ConstructMovement> OnPrimaryMovementChange = delegate { };
     public List<ConstructPart> Parts => parts;
+
+    private ConstructPart corePart;
+    private List<ConstructPart> parts = new();
+    private List<ConstructMovement> subscribedMovements = new();
+    private List<ConstructShape> subscribedShapes = new();
+    private List<ConstructSkill> subscribedSkills = new();
+    private ActionSet assignedSkills = new();
+    private ConstructMovement primaryMovement;
+    private bool isConstructing;
 
     public void InitCore(ConstructPart corePart)
     {
         Assert.IsTrue(corePart != null);
-        currentState = State.Active;
         this.corePart = corePart;
         AddPart(this.corePart);
-    }
-
-    public void AddPart(ConstructPart part) // Expects caller to be self
-    {
-        Assert.IsFalse(part.IsConstructed);
-
-        parts.Add(part);
-
-        foreach (ConstructSkill skill in part.Skills) RegisterConstructSkill(part, skill);
-        foreach (ConstructMovement movement in part.Movements) RegisterConstructMovement(part, movement);
-        foreach (ConstructShape shape in part.Shapes) RegisterConstructShape(part, shape);
-
-        part.OnSkillEvent += OnPartSkillEvent;
-        part.OnMovementEvent += OnPartMovementEvent;
-        part.OnShapeEvent += OnPartShapeEvent;
-
-        part.JoinConstruct(this);
-
-        OnPartEvent(EventType.Add, part);
-    }
-
-    public void RemovePart(ConstructPart part) // Expects caller to be self
-    {
-        Assert.IsTrue(part.IsConstructed);
-        Assert.IsTrue(parts.Contains(part));
-
-        foreach (ConstructSkill skill in part.Skills) UnregisterConstructSkill(part, skill);
-        foreach (ConstructMovement movement in part.Movements) UnregisterConstructMovement(part, movement);
-        foreach (ConstructShape shape in part.Shapes) UnregisterConstructShape(part, shape);
-
-        part.OnSkillEvent -= OnPartSkillEvent;
-        part.OnMovementEvent -= OnPartMovementEvent;
-        part.OnShapeEvent -= OnPartShapeEvent;
-
-        parts.Remove(part);
-        part.LeaveConstruct(this);
-
-        OnPartEvent(EventType.Remove, part);
     }
 
     public void Move(Vector3 dir) => primaryMovement?.Move(dir);
@@ -85,91 +48,76 @@ public class Construct : MonoBehaviour
 
     public void SkillInputUp(int slot) => assignedSkills.ActionInputUp(slot);
 
-    public void PerformConstruction(Construction construction)
+    public async Task TryConstructPart(PartConstruction construction)
     {
-        // Ensure still a valid construction
-        (bool, int) canConstruct = construction.shape.CanConstructWith(construction.part);
+        if (isConstructing) return;
+
+        (bool, int) canConstruct = construction.shape.CanAddPart(construction.part);
+
         if (!canConstruct.Item1) return;
         if (canConstruct.Item2 != construction.slot) return;
 
-        // TODO: Figure if this should be allowed
-        // Construct -> attaching adds shape -> construct gets shape
-        //           -> add attachee part    -> construct gets shape
+        isConstructing = true;
 
-        // Begin async construction
-        StartCoroutine(construction.shape.EnumConstructWith(construction.part, canConstruct.Item2, (System.Action<bool>)((bool success) =>
-        {
-            // TODO: Implement cancelling
-            Assert.IsTrue(success);
+        // Expected behaviour:
+        // - Shape / movement moves the parts into position
+        // - All the parts involved are set to active parts
+        // - By the time all parts are added we should have added the shape (in RegisterConstructPartActiveShape())
+        // - Construction ends and OnShapePartsChange() is called
+        // - Here we add all the parts to the construct
+        // - Any parts outside the construct should be dependant on the shape
 
-            // Target part is outside the construct, therefore shape is part of construct, so only add part
-            if (!this.parts.Contains(construction.part))
-            {
-                AddPart(construction.part);
-            }
+        bool success = await construction.shape.AddPart(construction.part, canConstruct.Item2);
+        Assert.IsTrue(success);
 
-            // Target part is part of the construct, therefore shape is outside so add each shape parts (and in turn the shape)
-            else
-            {
-                foreach (ConstructPart part in construction.shape.Parts)
-                {
-                    if (!this.parts.Contains(part)) AddPart(part);
-                }
-            }
+        isConstructing = false;
 
-            OnShapeEvent(EventType.Add, construction.shape);
-        })));
+        // We can assume that during the construction process one the following will have happened:
+        // - RegisterConstructShape() called because our part joined another parts shape
+        // - OnShapePartsChange() called because another part joined our parts shape
+        // Eitherway all the parts and shapes from everyone involved should have been added to this construct
+
+        Assert.IsTrue(subscribedShapes.Contains(construction.shape));
+        foreach (ConstructPart part in construction.shape.Parts) Assert.IsTrue(parts.Contains(part));
     }
 
-    public Construction[] GetAvailableConstructions(ConstructPart targetPart)
+    public void TryRemovePart(ConstructPart part)
+    {
+        if (isConstructing) return;
+        Assert.IsTrue(parts.Contains(part));
+        Assert.IsFalse(part == corePart);
+        RemovePart(part);
+    }
+
+    public void TryDeconstruct()
+    {
+        if (isConstructing) return;
+        corePart.Deconstruct();
+    }
+
+    public PartConstruction[] GetAvailableConstructions(ConstructPart targetPart)
     {
         // We want all constructions either on the construct or on the shape
-        List<Construction> AvailableConstructions = new();
+        List<PartConstruction> AvailableConstructions = new();
 
         // Find which of our shapes the targetted parts fits with
-        foreach (ConstructShape shape in subscribedShapes.Keys)
+        foreach (ConstructShape shape in subscribedShapes)
         {
-            (bool canConstruct, int slot) = shape.CanConstructWith(targetPart);
-            if (canConstruct) AvailableConstructions.Add(new Construction { shape = shape, part = targetPart, slot = slot });
+            (bool canConstruct, int slot) = shape.CanAddPart(targetPart);
+            if (canConstruct) AvailableConstructions.Add(new PartConstruction { shape = shape, part = targetPart, slot = slot });
         }
 
         // Find which shapes in the target part which some of our parts fit with
-        foreach (ConstructShape shape in targetPart.Shapes)
+        foreach (ConstructShape shape in targetPart.InherentShapes)
         {
             foreach (ConstructPart part in parts)
             {
-                (bool canConstruct, int slot) = shape.CanConstructWith(part);
-                if (canConstruct) AvailableConstructions.Add(new Construction { shape = shape, part = part, slot = slot });
+                (bool canConstruct, int slot) = shape.CanAddPart(part);
+                if (canConstruct) AvailableConstructions.Add(new PartConstruction { shape = shape, part = part, slot = slot });
             }
         }
 
         return AvailableConstructions.ToArray();
-    }
-
-    public bool CanSetState(State state)
-    {
-        switch (state)
-        {
-            case State.Active:
-                return true;
-
-            case State.Forging:
-                return currentState == State.Active;
-
-            case State.Inactive:
-                return currentState == State.Active;
-
-            default:
-                Assert.IsTrue(false);
-                return false;
-        }
-    }
-
-    public void SetState(State state)
-    {
-        Assert.IsTrue(CanSetState(state));
-        currentState = state;
-        OnStateChange(currentState);
     }
 
     public Vector3 GetCentre()
@@ -178,23 +126,15 @@ public class Construct : MonoBehaviour
         return primaryMovement.GetCentre();
     }
 
-    private State currentState = State.Inactive;
-    private ConstructPart corePart;
-    private List<ConstructPart> parts = new();
-    private Dictionary<ConstructMovement, ConstructPart> subscribedMovements = new();
-    private Dictionary<ConstructShape, List<ConstructPart>> subscribedShapes = new();
-    private Dictionary<ConstructSkill, ConstructPart> subscribedSkills = new();
-    private ActionSet assignedSkills = new();
-    private ConstructMovement primaryMovement;
-
     private void OnDestroy()
     {
         // TODO: Stop listening to all events, constructs lifetimes are not game wide
     }
 
-    private void Update()
+    private void LateUpdate()
     {
-        // TODO: We might need to update primary movement and also look at assigned skills here?
+        // After dust has settled then try and update if we need to change primary movement
+        UpdatePrimaryMovement();
     }
 
     private void UpdatePrimaryMovement()
@@ -202,13 +142,14 @@ public class Construct : MonoBehaviour
         if (primaryMovement != null) return;
 
         // Assign first possible movement
-        foreach (ConstructMovement movement in subscribedMovements.Keys)
+        foreach (ConstructMovement movement in subscribedMovements)
         {
             if (movement.CanActivate())
             {
                 primaryMovement = movement;
                 primaryMovement.Activate();
                 primaryMovement.OnStateChange += OnPrimaryMovementStateChange;
+                OnPrimaryMovementChange(primaryMovement);
                 break;
             }
         }
@@ -216,70 +157,156 @@ public class Construct : MonoBehaviour
 
     private void UnsetPrimaryMovement()
     {
+        // TODO: This seems to be recursive
         if (primaryMovement.IsActive) primaryMovement.Deactivate();
-        primaryMovement.OnStateChange -= OnPrimaryMovementStateChange;
+        primaryMovement.OnStateChange -= OnPrimaryMovementStateChange; // This line is being called twice and silently failing
         primaryMovement = null;
+        OnPrimaryMovementChange(null);
+    }
+
+    private void AddPart(ConstructPart part) // Expects caller to be self
+    {
+        Assert.IsFalse(part.IsConstructed);
+        Assert.IsFalse(parts.Contains(part));
+
+        // This is either a core part, or added due to a shape being added / changed
+        // Eitherway we just need to update the construct with all the parts components
+
+        part.NotifyAddedToConstruct(this);
+        parts.Add(part);
+        OnPartEvent(EventType.Add, part);
+
+        foreach (ConstructSkill skill in part.Skills) RegisterConstructSkill(part, skill);
+        foreach (ConstructMovement movement in part.Movements) RegisterConstructMovement(part, movement);
+        foreach (ConstructShape shape in part.InherentShapes) RegisterConstructShape(part, shape);
+
+        part.OnSkillEvent += OnPartSkillEvent;
+        part.OnMovementEvent += OnPartMovementEvent;
+        part.OnActiveShapeEvent += OnPartActiveShapeEvent;
+    }
+
+    private void RemovePart(ConstructPart part) // Expects caller to be self
+    {
+        Assert.IsTrue(part.IsConstructed);
+        Assert.IsTrue(parts.Contains(part));
+        Assert.IsFalse(part == corePart);
+
+        parts.Remove(part);
+        part.NotifyRemovedFromConstruct(this);
+        OnPartEvent(EventType.Remove, part);
+
+        foreach (ConstructSkill skill in part.Skills) UnregisterConstructSkill(part, skill);
+        foreach (ConstructMovement movement in part.Movements) UnregisterConstructMovement(part, movement);
+        foreach (ConstructShape shape in part.InherentShapes) UnregisterConstructShape(part, shape);
+
+        part.OnSkillEvent -= OnPartSkillEvent;
+        part.OnMovementEvent -= OnPartMovementEvent;
+        part.OnActiveShapeEvent -= OnPartActiveShapeEvent;
     }
 
     private void RegisterConstructSkill(ConstructPart part, ConstructSkill skill)
     {
-        Assert.IsFalse(subscribedSkills.ContainsKey(skill));
         Assert.IsTrue(parts.Contains(part));
-        subscribedSkills.Add(skill, part);
+        Assert.IsFalse(subscribedSkills.Contains(skill));
+
+        subscribedSkills.Add(skill);
         if (assignedSkills.AvailableSlotCount > 0) assignedSkills.RegisterAction(skill);
+
         OnSkillEvent(EventType.Add, skill);
     }
 
     private void UnregisterConstructSkill(ConstructPart part, ConstructSkill skill)
     {
-        Assert.IsTrue(subscribedSkills.ContainsKey(skill));
+        // The part is allowed to already have been removed from the construct
+        Assert.IsTrue(subscribedSkills.Contains(skill));
+
         subscribedSkills.Remove(skill);
-        assignedSkills.UnregisterAction(skill);
+        if (skill.IsAssigned) assignedSkills.UnregisterAction(skill);
+
         OnSkillEvent(EventType.Remove, skill);
     }
 
     private void RegisterConstructMovement(ConstructPart part, ConstructMovement movement)
     {
-        Assert.IsFalse(subscribedMovements.ContainsKey(movement));
         Assert.IsTrue(parts.Contains(part));
-        subscribedMovements.Add(movement, part);
+        Assert.IsFalse(subscribedMovements.Contains(movement));
+
+        subscribedMovements.Add(movement);
+
         OnMovementEvent(EventType.Add, movement);
-        UpdatePrimaryMovement();
     }
 
     private void UnregisterConstructMovement(ConstructPart part, ConstructMovement movement)
     {
-        Assert.IsTrue(subscribedMovements.ContainsKey(movement));
+        // The part is allowed to already have been removed from the construct
+        Assert.IsTrue(subscribedMovements.Contains(movement));
+
+        // If the movement is the current movement then unset it
+        if (primaryMovement == movement) movement.Deactivate();
+
         subscribedMovements.Remove(movement);
         OnMovementEvent(EventType.Remove, movement);
-        UpdatePrimaryMovement();
     }
 
     private void RegisterConstructShape(ConstructPart part, ConstructShape shape)
     {
         Assert.IsTrue(parts.Contains(part));
-        bool newShape = !subscribedShapes.ContainsKey(shape);
-        if (!newShape) Assert.IsFalse(subscribedShapes[shape].Contains(part));
-        if (newShape) subscribedShapes.Add(shape, new());
-        subscribedShapes[shape].Add(part);
-        if (newShape) OnShapeEvent(EventType.Add, shape);
-        else OnShapeEvent(EventType.Change, shape);
+
+        // A part has been added therefore subscribe its shapes
+        // It is possible its shape has already been added during an existing part becoming active
+        if (!subscribedShapes.Contains(shape))
+        {
+            shape.OnPartsChange += OnShapePartsChange;
+            subscribedShapes.Add(shape);
+            OnShapeEvent(EventType.Add, shape, part);
+        }
     }
 
     private void UnregisterConstructShape(ConstructPart part, ConstructShape shape)
     {
-        Assert.IsTrue(subscribedShapes.ContainsKey(shape));
-        Assert.IsTrue(subscribedShapes[shape].Contains(part));
-        subscribedShapes[shape].Remove(part);
-        if (subscribedShapes[shape].Count == 0)
-        {
-            subscribedShapes.Remove(shape);
-            OnShapeEvent(EventType.Remove, shape);
-        }
-        else OnShapeEvent(EventType.Change, shape);
+        Assert.IsTrue(subscribedShapes.Contains(shape));
+
+        // A part has been removed therefore unsubscribe its shapes
+        shape.OnPartsChange -= OnShapePartsChange;
+        subscribedShapes.Remove(shape);
+        OnShapeEvent(EventType.Remove, shape, part);
     }
 
-    private void OnPrimaryMovementStateChange(bool isActive)
+    private void RegisterConstructPartActiveShape(ConstructPart part, ConstructShape shape)
+    {
+        Assert.IsTrue(parts.Contains(part));
+
+        // A part we control has been set as active on a new shape outside the construct
+        // Track the shape and then deal with new parts in OnShapePartsChange()
+        if (!subscribedShapes.Contains(shape))
+        {
+            subscribedShapes.Add(shape);
+            shape.OnPartsChange += OnShapePartsChange;
+            OnShapeEvent(EventType.Add, shape, part);
+        }
+
+        // Our parts inherent shape is being activated with a new part from outside the construct
+        // We can just do nothing and wait for OnShapePartsChange() to be called
+        else { }
+
+        // Eitherway this part has been added to this shape so notify
+        OnActiveShapeEvent(EventType.Add, shape, part);
+    }
+
+    private void UnregisterConstructPartActiveShape(ConstructPart part, ConstructShape shape)
+    {
+        Assert.IsTrue(subscribedShapes.Contains(shape));
+
+        // If the part is dependant on the shape then we need to remove it from the construct
+        // The part should already have removed the shape from itself so this shouldn't recurse
+        // See OnShapePartChange() for shape removal and clean up
+        if (part.ConstructionDependantShape == shape)
+        {
+            RemovePart(part);
+        }
+    }
+
+    private void OnPrimaryMovementStateChange(ConstructMovement movement, bool isActive)
     {
         if (!isActive) UnsetPrimaryMovement();
     }
@@ -294,12 +321,55 @@ public class Construct : MonoBehaviour
     {
         if (type == ConstructPart.EventType.Add) RegisterConstructMovement(part, movement);
         else if (type == ConstructPart.EventType.Remove) UnregisterConstructMovement(part, movement);
-        UpdatePrimaryMovement();
     }
 
-    private void OnPartShapeEvent(ConstructPart part, ConstructPart.EventType type, ConstructShape shape)
+    private void OnPartActiveShapeEvent(ConstructPart part, ConstructPart.EventType type, ConstructShape shape)
     {
-        if (type == ConstructPart.EventType.Add) RegisterConstructShape(part, shape);
-        else if (type == ConstructPart.EventType.Remove) UnregisterConstructShape(part, shape);
+        if (type == ConstructPart.EventType.Add) RegisterConstructPartActiveShape(part, shape);
+        else if (type == ConstructPart.EventType.Remove) UnregisterConstructPartActiveShape(part, shape);
+    }
+
+    private void OnShapePartsChange(ConstructShape shape, bool isAdded)
+    {
+        Assert.IsTrue(subscribedShapes.Contains(shape));
+
+        // This will be called after all the parts have been added / removed to the shape
+
+        // If shapes have been added then this is the key point we add them to the construct
+        if (isAdded)
+        {
+            foreach (ConstructPart part in shape.Parts)
+            {
+                if (!parts.Contains(part)) AddPart(part);
+            }
+        }
+
+        // If a part is removed from a shape then UnregisterConstructPartActiveShape() will remove it from the construct if necessary
+        // We can presume shapes will be deconstructed and removed when their inherent part is removed
+        // It is possible that a shape removes the part that connects it to the core but does not deconstruct
+        // Therefore here we check that atleast one of the parts of the shape is dependant on something other than the shape
+        else if (!isAdded)
+        {
+            bool isConnected = false;
+            foreach (ConstructPart part in shape.Parts)
+            {
+                if (part.ConstructionDependantShape != shape)
+                {
+                    isConnected = true;
+                    break;
+                }
+            }
+            if (!isConnected)
+            {
+                subscribedShapes.Remove(shape);
+                shape.OnPartsChange -= OnShapePartsChange;
+                OnShapeEvent(EventType.Remove, shape, null);
+
+                // This is a complex but possible control flow to reach this point
+                // Just for now throw an exception so we can check this is happening properly
+                // Can remove this once confirmed this is reasonably expected
+                throw new System.Exception("Shape is not connected to the construct");
+            }
+        }
     }
 }

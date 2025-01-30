@@ -5,6 +5,11 @@ public class HopMovement : ConstructMovement
 {
     public bool IsGrounded { get; private set; }
 
+    [Header("References")]
+    [SerializeField] private ConstructPart part;
+
+    private ConstructPart.PhysicalHandle partPH;
+
     public override void Aim(Vector3 pos) => Debug.LogWarning("HopMovement.Aim(pos) not implemented.");
 
     public override void Move(Vector3 dir) => Debug.LogWarning("HopMovement.Move(dir) not implemented.");
@@ -14,25 +19,20 @@ public class HopMovement : ConstructMovement
     public override void Activate()
     {
         Assert.IsTrue(CanActivate());
-        partPC = part.TakeControl(this);
+        partPH = part.TakeControl(this);
         IsActive = true;
-        OnStateChange.Invoke(IsActive);
+        OnStateChange.Invoke(this, IsActive);
     }
 
     public override void Deactivate()
     {
         Assert.IsTrue(IsActive);
-        partPC.Release();
+        partPH.Release();
         IsActive = false;
-        OnStateChange.Invoke(IsActive);
+        OnStateChange.Invoke(this, IsActive);
     }
 
     public override Vector3 GetCentre() => part.GetCentre();
-
-    [Header("References")]
-    [SerializeField] private ConstructPart part;
-
-    private ConstructPart.PhysicalHandle partPC;
 
     private void Awake()
     {

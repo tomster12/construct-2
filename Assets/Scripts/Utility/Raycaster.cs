@@ -5,12 +5,15 @@ using UnityEngine.Events;
 [Serializable]
 public class Raycaster
 {
-    public UnityAction OnTargetChange = delegate { };
     public bool Hit { get; private set; }
     public Vector3 HitPoint { get; private set; }
     public Transform HitTransform { get; private set; }
     public WorldObject HitWorldObject { get; private set; }
-    public ConstructPart HitConstructPart => HitWorldObject?.GetCachedComponent<ConstructPart>();
+    public ConstructPart HitConstructPart => HitWorldObject == null ? null : HitWorldObject.GetCachedComponent<ConstructPart>();
+    public UnityAction OnTargetChange = delegate { };
+
+    private static float MAX_DISTANCE = 100f;
+    private Camera camera;
 
     public Raycaster(Camera camera)
     {
@@ -39,8 +42,4 @@ public class Raycaster
             OnTargetChange.Invoke();
         }
     }
-
-    private Camera camera;
-
-    private static float MAX_DISTANCE = 100f;
 }

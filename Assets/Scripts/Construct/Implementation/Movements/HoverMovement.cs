@@ -1,10 +1,39 @@
 using System;
 using System.Collections;
+using System.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 public class HoverMovement : ConstructMovement, IAttacherMovement
 {
+    private float maxHoverHeight => hoverHeight * 2.0f;
+
+    [Header("References")]
+    [SerializeField] private ConstructPart part;
+
+    [Header("Config")]
+    [SerializeField] private float hoverHeight = 1.0f;
+    [SerializeField] private float oscillateMagnitude = 0.1f;
+    [SerializeField] private float oscillateSpeed = 1.0f;
+    [SerializeField] private float moveForce = 1.0f;
+    [SerializeField] private float hoverForce = 2.0f;
+    [SerializeField] private float hoverDrag = 0.5f;
+    [SerializeField] private float hoverAngularDrag = 0.5f;
+    [SerializeField] private float fallForce = 1.0f;
+    [SerializeField] private float tiltForce = 0.1f;
+    [SerializeField] private float aimForce = 0.1f;
+    [SerializeField] private float aimThreshold = 0.05f;
+    [SerializeField] private float uprightForce = 0.1f;
+    [SerializeField] private float uprightThreshold = 0.05f;
+
+    private ConstructPart.PhysicalHandle partPH;
+    private bool isGrounded;
+    private bool isMoving;
+    private bool isTransitioning;
+    private Vector3 groundPosition;
+    private float groundTime;
+
     public override void Move(Vector3 dir)
     {
         Assert.IsTrue(IsActive);
@@ -40,7 +69,7 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
         partPH.SetPhysicsMode(false, false);
         partPH.SetPhysicsProperties(hoverDrag, hoverAngularDrag);
         IsActive = true;
-        OnStateChange.Invoke(IsActive);
+        OnStateChange.Invoke(this, IsActive);
     }
 
     public override void Deactivate()
@@ -48,51 +77,35 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
         Assert.IsTrue(IsActive);
         partPH.Release();
         IsActive = false;
-        OnStateChange.Invoke(IsActive);
+        OnStateChange.Invoke(this, IsActive);
     }
 
-    public IEnumerator EnumStartAttach(ConstructPart attacheePart, Action<bool> callback)
+    public async Task<bool> AttachTo(ConstructPart attacheePart)
     {
         isTransitioning = true;
 
+        // Disable physics
+        partPH.SetPhysicsMode(true, false);
+        partPH.SetEnableCollisions(false);
+
         // Place part on top of attachee part
         part.WO.transform.rotation = attacheePart.WO.transform.rotation;
-        part.WO.transform.position = attacheePart.GetCentre()
-            + (attacheePart.WO.Extents.y + part.WO.Extents.y - 0.2f) * attacheePart.WO.transform.up;
         part.WO.transform.SetParent(attacheePart.WO.transform);
 
+        part.WO.transform.position = attacheePart.GetCentre()
+            + (attacheePart.WO.Extents.y + part.WO.Extents.y + 0.5f) * attacheePart.WO.transform.up;
+
+        // TODO: Remove this debug delay
+        await Task.Delay(500);
+
+        part.WO.transform.position = attacheePart.GetCentre()
+            + (attacheePart.WO.Extents.y + part.WO.Extents.y - 0.2f) * attacheePart.WO.transform.up;
+
         isTransitioning = false;
-        callback(true);
-        yield break;
+        return true;
     }
 
     public override Vector3 GetCentre() => part.GetCentre();
-
-    [Header("References")]
-    [SerializeField] private ConstructPart part;
-
-    [Header("Config")]
-    [SerializeField] private float hoverHeight = 1.0f;
-    [SerializeField] private float oscillateMagnitude = 0.1f;
-    [SerializeField] private float oscillateSpeed = 1.0f;
-    [SerializeField] private float moveForce = 1.0f;
-    [SerializeField] private float hoverForce = 2.0f;
-    [SerializeField] private float hoverDrag = 0.5f;
-    [SerializeField] private float hoverAngularDrag = 0.5f;
-    [SerializeField] private float fallForce = 1.0f;
-    [SerializeField] private float tiltForce = 0.1f;
-    [SerializeField] private float aimForce = 0.1f;
-    [SerializeField] private float aimThreshold = 0.05f;
-    [SerializeField] private float uprightForce = 0.1f;
-    [SerializeField] private float uprightThreshold = 0.05f;
-
-    private ConstructPart.PhysicalHandle partPH;
-    private bool isGrounded;
-    private bool isMoving;
-    private bool isTransitioning;
-    private Vector3 groundPosition;
-    private float groundTime;
-    private float maxHoverHeight => hoverHeight * 2.0f;
 
     private void Awake()
     {

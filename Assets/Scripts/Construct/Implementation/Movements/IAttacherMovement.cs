@@ -1,7 +1,6 @@
-using System;
-using System.Collections;
+using System.Threading.Tasks;
 
 public interface IAttacherMovement
 {
-    IEnumerator EnumStartAttach(ConstructPart attacherPart, Action<bool> callback);
+    Task<bool> AttachTo(ConstructPart attacherPart);
 }

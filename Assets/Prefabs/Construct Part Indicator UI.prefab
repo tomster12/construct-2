@@ -139,8 +139,8 @@ MonoBehaviour:
   colourFGHighlighted: {r: 1, g: 1, b: 1, a: 0.92156863}
   colourFGUnhighlighted: {r: 1, g: 1, b: 1, a: 0.89411765}
   colourBGHighlighted: {r: 1, g: 1, b: 1, a: 0.7490196}
-  colourBGUnhighlighted: {r: 0.447, g: 0.447, b: 0.447, a: 0.4745098}
-  colourLerp: 70
+  colourBGUnhighlighted: {r: 0.447, g: 0.447, b: 0.447, a: 0}
+  colourLerp: 40
   sizeHighlighted: 0.13
   sizeUnhighlighted: 0.08
   sizeLerp: 60

@@ -5,9 +5,17 @@ using UnityEngine.UI;
 
 public class PlayerConstructPartPromptUI : MonoBehaviour
 {
+    [Header("References")]
+    [SerializeField] private Transform constructionPrompt;
+    [SerializeField] private GameObject shapesParent;
+    [SerializeField] private HorizontalLayoutGroup shapesLayout;
+
+    private ConstructPart targetPart;
+    private PartConstruction[] relevantConstructions;
+    private List<PlayerConstructShapeUI> shapes = new();
+
     public void Init(PlayerConstructController player)
     {
-        this.player = player;
         player.OnAvailableConstructionsChange += OnAvailableConstructionsChange;
 
         // Ensure it is empty on start
@@ -29,16 +37,6 @@ public class PlayerConstructPartPromptUI : MonoBehaviour
             shapesLayout.CalculateLayoutInputHorizontal();
         }
     }
-
-    [Header("References")]
-    [SerializeField] private Transform constructionPrompt;
-    [SerializeField] private GameObject shapesParent;
-    [SerializeField] private HorizontalLayoutGroup shapesLayout;
-
-    private PlayerConstructController player;
-    private ConstructPart targetPart;
-    private Construction[] relevantConstructions;
-    private List<PlayerConstructShapeUI> shapes = new();
 
     private void Update()
     {
@@ -63,7 +61,7 @@ public class PlayerConstructPartPromptUI : MonoBehaviour
         shapes.Clear();
 
         // Create new shape UIs
-        foreach (Construction construction in relevantConstructions)
+        foreach (PartConstruction construction in relevantConstructions)
         {
             PlayerConstructShapeUI shapeUI = PlayerConstructShapeUI.Create(construction.shape, shapesParent.transform);
             shapes.Add(shapeUI);
@@ -71,14 +69,13 @@ public class PlayerConstructPartPromptUI : MonoBehaviour
         }
     }
 
-    private void OnAvailableConstructionsChange(Construction[] constructions)
+    private void OnAvailableConstructionsChange(PartConstruction[] constructions)
     {
         if (targetPart == null) return;
 
-        // Calculate which constructions are relevant
+        // Either we are constructing target part, or it is a part of the shape being constructed
         relevantConstructions = constructions.Where(
-            c => c.part == targetPart
-            || (targetPart != null && targetPart.Shapes.Contains(c.shape))
+            c => c.part == targetPart || c.shape.Parts.Contains(targetPart)
         ).ToArray();
 
         // If there are constructions available, show the prompt

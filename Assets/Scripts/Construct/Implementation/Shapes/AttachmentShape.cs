@@ -1,5 +1,4 @@
-using System;
-using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -9,15 +8,22 @@ using UnityEngine.Assertions;
 // Slot 1: Attacher
 public class AttachmentShape : ConstructShape
 {
-    public override (bool, int) CanConstructWith(ConstructPart part)
+    [Header("References")]
+    [SerializeField] private ConstructPart attacheePart;
+
+    private ConstructPart attachingPart;
+    private ConstructPart.PhysicalHandle attachingPartPH;
+
+    public override (bool, int) CanAddPart(ConstructPart part)
     {
         bool canConstruct = true;
-        canConstruct &= !IsConstructing && !IsConstructed;
+        canConstruct &= (transitionType == TransitionType.None) && !IsConstructed;
         canConstruct &= attacheePart != null;
         canConstruct &= attachingPart == null;
         canConstruct &= part.Tags.Contains(PartTag.Sharp);
         canConstruct &= part.WeightClass == PartWeightClass.S;
         canConstruct &= part.IsControlled && part.CurrentController is ConstructMovement && part.CurrentController is IAttacherMovement;
+
         return (canConstruct, 1);
     }
 
@@ -33,51 +39,80 @@ public class AttachmentShape : ConstructShape
         }
     }
 
-    public override IEnumerator EnumConstructWith(ConstructPart part, int slot, Action<bool> callback)
+    public override async Task<bool> AddPart(ConstructPart part, int slot)
     {
-        var canConstructWith = CanConstructWith(part);
+        var canConstructWith = CanAddPart(part);
         Assert.IsTrue(canConstructWith.Item1);
         Assert.IsTrue(slot == 1 && canConstructWith.Item2 == slot);
 
-        IsConstructing = true;
+        transitionType = TransitionType.Constructing;
 
-        // Perform attachment movement
         IAttacherMovement attacherMovement = part.CurrentController as IAttacherMovement;
-        yield return attacherMovement.EnumStartAttach(attacheePart, (bool success) =>
-        {
-            // TODO: Implement cancelling
-            Assert.IsTrue(success);
+        bool success = await attacherMovement.AttachTo(attacheePart);
+        Assert.IsTrue(success);
 
-            // Stop movement control
-            ConstructMovement movement = part.CurrentController as ConstructMovement;
-            movement.Deactivate();
+        ConstructMovement movement = part.CurrentController as ConstructMovement;
+        movement.Deactivate();
 
-            // Add attacher part into this shape
-            attachingPart = part;
-            Parts.Add(attachingPart);
-            attachingPart.JoinShape(this);
+        attachingPart = part;
+        Parts.Add(attachingPart);
 
-            // Start shape control
-            attachingPartPC = attachingPart.TakeControl(this);
-            attachingPartPC.SetPhysicsMode(true, false);
-            attachingPartPC.SetEnableCollisions(false);
+        attachingPart.NotifyAddedToActiveShape(this);
+        attacheePart.NotifyAddedToActiveShape(this);
 
-            IsConstructing = false;
-            OnPartsChange.Invoke();
-            callback(true);
-        });
+        attachingPartPH = attachingPart.TakeControl(this);
+        attachingPartPH.SetPhysicsMode(true, false);
+        attachingPartPH.SetEnableCollisions(false);
+
+        transitionType = TransitionType.None;
+        IsConstructed = true;
+
+        OnPartsChange.Invoke(this, true);
+        Assert.IsTrue(attacheePart.IsConstructed);
+        Assert.IsTrue(attachingPart.IsConstructed); // TODO: This fails
+        return true;
     }
 
-    [Header("References")]
-    [SerializeField] private ConstructPart attacheePart;
+    public override async Task RemovePart(ConstructPart part)
+    {
+        // Only should ever be allowed to remove the attaching part
+        // This is equivalent to deconstruction so redirect to that function
+        Assert.IsTrue(IsConstructed);
+        Assert.IsTrue(transitionType == TransitionType.None);
+        Assert.IsTrue(attachingPart == part);
+        await Deconstruct();
+    }
 
-    private ConstructPart attachingPart;
-    private ConstructPart.PhysicalHandle attachingPartPC;
+    public override async Task Deconstruct()
+    {
+        Assert.IsTrue(IsConstructed);
+        Assert.IsTrue(transitionType == TransitionType.None);
+
+        transitionType = TransitionType.Deconstructing;
+
+        // TODO: Remove this debug delay
+        await Task.Delay(500);
+
+        attachingPartPH.Release();
+
+        Parts.Remove(attachingPart);
+        attachingPart.NotifyRemovedFromActiveShape(this);
+        attachingPart = null;
+
+        attacheePart.NotifyRemovedFromActiveShape(this);
+
+        transitionType = TransitionType.None;
+        IsConstructed = false;
+
+        OnPartsChange.Invoke(this, false);
+        Assert.IsFalse(attacheePart.IsConstructed);
+        Assert.IsFalse(attachingPart.IsConstructed);
+    }
 
     private void Awake()
     {
         Assert.IsTrue(attacheePart != null);
         Parts.Add(attacheePart);
-        OnPartsChange.Invoke();
+        OnPartsChange.Invoke(this, true);
     }
 }

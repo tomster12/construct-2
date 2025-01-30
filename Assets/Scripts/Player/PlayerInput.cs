@@ -5,6 +5,21 @@ public class PlayerInput
 {
     public PlayerInputType Type { get; private set; }
 
+    private int mouseButton;
+    private string key;
+
+    private PlayerInput(int mouseButton)
+    {
+        Type = PlayerInputType.MOUSE;
+        this.mouseButton = mouseButton;
+    }
+
+    private PlayerInput(string key)
+    {
+        Type = PlayerInputType.KEYBOARD;
+        this.key = key;
+    }
+
     public static PlayerInput MouseInput(int mouseButton)
     {
         return new PlayerInput(mouseButton);
@@ -52,20 +67,5 @@ public class PlayerInput
             return UnityEngine.Input.GetKey(key);
         }
         return false;
-    }
-
-    private int mouseButton;
-    private string key;
-
-    private PlayerInput(int mouseButton)
-    {
-        Type = PlayerInputType.MOUSE;
-        this.mouseButton = mouseButton;
-    }
-
-    private PlayerInput(string key)
-    {
-        Type = PlayerInputType.KEYBOARD;
-        this.key = key;
     }
 }

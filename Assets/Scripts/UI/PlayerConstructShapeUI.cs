@@ -3,6 +3,23 @@ using UnityEngine.UI;
 
 public class PlayerConstructShapeUI : MonoBehaviour
 {
+    [Header("References")]
+    [SerializeField] private Image[] slotImages;
+    [SerializeField] private RectTransform parent;
+    [SerializeField] private RectTransform suggestionBG;
+    [SerializeField] private RectTransform suggestionPlus;
+
+    [Header("Config")]
+    [SerializeField] private float sizeSuggestion = 38.0f;
+    [SerializeField] private float sizeNotSuggestion = 35.0f;
+    [SerializeField] private Color colourDisabled = new(0.5f, 0.5f, 0.5f);
+    [SerializeField] private Color colourEnabled = new(1.0f, 1.0f, 1.0f);
+    [SerializeField] private Color colourSuggesting = new(0.4f, 0.6f, 0.93f);
+
+    private ConstructShape shape;
+    private PartConstruction? suggestedConstruction;
+    private bool isSuggestion = false;
+
     public static PlayerConstructShapeUI Create(ConstructShape shape, Transform parent)
     {
         string prefabName = "Player Construct Shape UI";
@@ -25,7 +42,7 @@ public class PlayerConstructShapeUI : MonoBehaviour
     public void Init(ConstructShape shape)
     {
         this.shape = shape;
-        this.shape.OnPartsChange += UpdateSlotColours;
+        this.shape.OnPartsChange += OnShapePartsChange;
         UpdateSlotColours();
         parent.sizeDelta = sizeNotSuggestion * Vector2.one;
     }
@@ -41,7 +58,7 @@ public class PlayerConstructShapeUI : MonoBehaviour
         }
     }
 
-    public void SetSuggestedConstruction(Construction construction)
+    public void SetSuggestedConstruction(PartConstruction construction)
     {
         // There is a suggested construction for this shape from the player
         suggestedConstruction = construction;
@@ -61,26 +78,14 @@ public class PlayerConstructShapeUI : MonoBehaviour
         parent.sizeDelta = (this.isSuggestion ? sizeSuggestion : sizeNotSuggestion) * Vector2.one;
     }
 
-    [Header("References")]
-    [SerializeField] private Image[] slotImages;
-    [SerializeField] private RectTransform parent;
-    [SerializeField] private RectTransform suggestionBG;
-    [SerializeField] private RectTransform suggestionPlus;
-
-    [Header("Config")]
-    [SerializeField] private float sizeSuggestion = 38.0f;
-    [SerializeField] private float sizeNotSuggestion = 35.0f;
-    [SerializeField] private Color colourDisabled = new(0.5f, 0.5f, 0.5f);
-    [SerializeField] private Color colourEnabled = new(1.0f, 1.0f, 1.0f);
-    [SerializeField] private Color colourSuggesting = new(0.4f, 0.6f, 0.93f);
-
-    private ConstructShape shape;
-    private Construction? suggestedConstruction;
-    private bool isSuggestion = false;
-
     private void OnDestroy()
     {
-        shape.OnPartsChange -= UpdateSlotColours;
+        shape.OnPartsChange -= OnShapePartsChange;
         shape = null;
+    }
+
+    private void OnShapePartsChange(ConstructShape shape, bool isAdded)
+    {
+        UpdateSlotColours();
     }
 }

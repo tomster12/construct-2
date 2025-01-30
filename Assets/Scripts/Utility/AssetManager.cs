@@ -3,6 +3,17 @@ using UnityEngine;
 
 public class AssetManager : MonoBehaviour
 {
+    private static Dictionary<string, Sprite> spriteDict = new();
+    private static Dictionary<string, GameObject> prefabDict = new();
+    private static Dictionary<string, Material> materialDict = new();
+    private static Dictionary<string, Font> fontDict = new();
+
+    [Header("Assets")]
+    [SerializeField] private Sprite[] sprites;
+    [SerializeField] private GameObject[] prefabs;
+    [SerializeField] private Material[] materials;
+    [SerializeField] private Font[] fonts;
+
     public static Sprite GetSprite(string name) => spriteDict[name];
 
     public static GameObject GetPrefab(string name) => prefabDict[name];
@@ -10,16 +21,6 @@ public class AssetManager : MonoBehaviour
     public static Material GetMaterial(string name) => materialDict[name];
 
     public static Font GetFont(string name) => fontDict[name];
-
-    private static Dictionary<string, Sprite> spriteDict = new Dictionary<string, Sprite>();
-    private static Dictionary<string, GameObject> prefabDict = new Dictionary<string, GameObject>();
-    private static Dictionary<string, Material> materialDict = new Dictionary<string, Material>();
-    private static Dictionary<string, Font> fontDict = new Dictionary<string, Font>();
-
-    [SerializeField] private Sprite[] sprites;
-    [SerializeField] private GameObject[] prefabs;
-    [SerializeField] private Material[] materials;
-    [SerializeField] private Font[] fonts;
 
     private void OnValidate()
     {

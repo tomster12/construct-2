@@ -1,24 +1,15 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
 
 public class PlayerConstructController : MonoBehaviour
 {
-    public static PlayerConstructController Instance;
-
-    public UnityAction<Construction[]> OnAvailableConstructionsChange = delegate { };
-
     public Raycaster Raycaster => raycaster;
     public Construct Construct => construct;
-
-    public void SetTarget(WorldObject targetWO)
-    {
-        camTarget = targetWO;
-        camOffsetBounds = targetWO.MaxExtentXZ * camOffsetBoundsMult + camOffsetAdditional;
-        camZoomDistance = targetWO.MaxExtentXZ * 15.0f;
-        UpdateCamera();
-    }
+    public static PlayerConstructController Instance;
+    public UnityAction<PartConstruction[]> OnAvailableConstructionsChange = delegate { };
 
     private static readonly Dictionary<PlayerInput, int> SKILL_BINDINGS = new Dictionary<PlayerInput, int>()
     {
@@ -29,11 +20,12 @@ public class PlayerConstructController : MonoBehaviour
         { PlayerInput.KeyInput("3"), 4 },
         { PlayerInput.KeyInput("4"), 5 },
     };
-
     private static readonly PlayerInput CONSTRUCTION_BINDING = PlayerInput.KeyInput("f");
+    private static readonly PlayerInput DECONSTRUCTION_BINDING = PlayerInput.KeyInput("g");
 
     [Header("References")]
-    [SerializeField] private Camera cam;
+    [SerializeField] private Camera camMain;
+    [SerializeField] private Camera camSS;
     [SerializeField] private Transform camParent;
     [SerializeField] private Construct construct;
     [SerializeField] private ConstructPart corePart;
@@ -51,8 +43,8 @@ public class PlayerConstructController : MonoBehaviour
     [SerializeField] private float camZoomDrag = 0.95f;
     [SerializeField] private float camZoomVelMax = 0.1f;
     [SerializeField] private float reticleLerp = 5.0f;
-    [SerializeField] private Vector3 camOffsetBoundsMult = new Vector3(1.0f, 0.5f, -1.0f);
-    [SerializeField] private Vector3 camOffsetAdditional = new Vector3(1.0f, 0.0f, 0.0f);
+    [SerializeField] private Vector3 camOffsetBoundsMult = new(1.0f, 0.5f, -1.0f);
+    [SerializeField] private Vector3 camOffsetAdditional = new(1.0f, 0.0f, 0.0f);
     [SerializeField] private float camAimSpeed = 40.0f;
     [SerializeField] private float nearbyPartRadius = 5.0f;
     [SerializeField] private float constructPartListUIGap = 5.0f;
@@ -62,17 +54,23 @@ public class PlayerConstructController : MonoBehaviour
     private Vector3 movementInput;
     private Vector3 aimInput;
     private Raycaster raycaster;
-    private Construction[] availableConstructions = new Construction[0];
-
+    private PartConstruction[] availableConstructions = new PartConstruction[0];
     private WorldObject camTarget;
     private Vector3 camOffsetBounds;
     private float camZoomVel = 0.0f;
     private float camZoomDistance = 5.0f;
     private float camRotX = 0.0f;
     private float camRotY = 0.0f;
-
     private Dictionary<ConstructPart, ConstructPartIndicatorUI> partIndicatorUIs;
     private List<PlayerConstructPartUI> partListUIs = new();
+
+    public void SetTarget(WorldObject targetWO)
+    {
+        camTarget = targetWO;
+        camOffsetBounds = targetWO.MaxExtentXZ * camOffsetBoundsMult + camOffsetAdditional;
+        camZoomDistance = targetWO.MaxExtentXZ * 15.0f;
+        UpdateCamera();
+    }
 
     private void Awake()
     {
@@ -82,18 +80,22 @@ public class PlayerConstructController : MonoBehaviour
 
     private void Start()
     {
-        cam.transform.parent = camParent;
-        cam.transform.localPosition = Vector3.zero;
+        camMain.transform.parent = camParent;
+        camSS.transform.parent = camParent;
+        camMain.transform.localPosition = Vector3.zero;
+        camSS.transform.localPosition = Vector3.zero;
 
         // Ensure it is empty on start
         foreach (Transform child in constructPartListUIParent) Destroy(child.gameObject);
 
-        raycaster = new Raycaster(cam);
+        raycaster = new Raycaster(camMain);
         raycaster.OnTargetChange += OnRaycasterTargetChange;
 
         construct.OnPartEvent += OnConstructPartEvent;
+        construct.OnSkillEvent += OnConstructSkillEvent;
         construct.OnMovementEvent += OnConstructMovementEvent;
-        construct.OnShapeEvent += OnConstructShapeEvent;
+        construct.OnActiveShapeEvent += OnConstructShapeEvent;
+        construct.OnPrimaryMovementChange += OnConstructPrimaryMovementChange;
         construct.InitCore(corePart);
 
         partPrompt.Init(this);
@@ -115,7 +117,7 @@ public class PlayerConstructController : MonoBehaviour
         UpdateReticle();
     }
 
-    private void HandleInput()
+    private async Task HandleInput()
     {
         // Update input direction
         movementInput = Vector3.zero;
@@ -137,7 +139,11 @@ public class PlayerConstructController : MonoBehaviour
         }
         if (CONSTRUCTION_BINDING.GetDown() && availableConstructions.Length > 0)
         {
-            construct.PerformConstruction(availableConstructions[0]);
+            await construct.TryConstructPart(availableConstructions[0]);
+        }
+        if (DECONSTRUCTION_BINDING.GetDown())
+        {
+            construct.TryDeconstruct();
         }
     }
 
@@ -155,9 +161,11 @@ public class PlayerConstructController : MonoBehaviour
         camRotY += diffRotY;
         camParent.transform.localRotation = Quaternion.Euler(camRotX, camRotY, 0.0f);
 
-        // Update cam position
+        // Update cam positions
+        Vector3 localPos = camOffsetBounds + camZoomDistance * Vector3.back;
         camParent.transform.position = camTarget.transform.position;
-        cam.transform.localPosition = camOffsetBounds + camZoomDistance * Vector3.back;
+        camMain.transform.localPosition = localPos;
+        camSS.transform.localPosition = localPos;
 
         // Update raycaster
         raycaster.Update();
@@ -200,7 +208,7 @@ public class PlayerConstructController : MonoBehaviour
         {
             if (availableConstructions.Length != 0)
             {
-                availableConstructions = new Construction[0];
+                availableConstructions = new PartConstruction[0];
                 OnAvailableConstructionsChange(availableConstructions);
             }
         }
@@ -218,7 +226,7 @@ public class PlayerConstructController : MonoBehaviour
         constantReticle.anchoredPosition = target;
 
         // If highlighting a part then centre the dynamic reticle on the part
-        if (raycaster.HitConstructPart != null) target = cam.WorldToScreenPoint(raycaster.HitConstructPart.WO.transform.position);
+        if (raycaster.HitConstructPart != null) target = camMain.WorldToScreenPoint(raycaster.HitConstructPart.WO.transform.position);
         dynamicReticle.anchoredPosition = Vector2.Lerp(dynamicReticle.anchoredPosition, target, reticleLerp * Time.deltaTime);
     }
 
@@ -280,14 +288,26 @@ public class PlayerConstructController : MonoBehaviour
         UpdateAvailableConstructions();
     }
 
-    private void OnConstructMovementEvent(Construct.EventType type, ConstructMovement movement)
+    private void OnConstructSkillEvent(Construct.EventType type, ConstructSkill skill)
     {
-        // For now if a movement is added / removed we have no UI that depends on this so do nothing
+        // For now if a skill is added / removed we have no UI that depends on this so do nothing
     }
 
-    private void OnConstructShapeEvent(Construct.EventType type, ConstructShape shape)
+    private void OnConstructMovementEvent(Construct.EventType type, ConstructMovement movement)
     {
-        // With shapes added / removed / changed we want to recalculate available constructions
+        // It is possible that a movement change can make constructions available / unavailable
+        UpdateAvailableConstructions();
+    }
+
+    private void OnConstructShapeEvent(Construct.EventType type, ConstructShape shape, ConstructPart part)
+    {
+        // It is likely that a shape change can make constructions available / unavailable
+        UpdateAvailableConstructions();
+    }
+
+    private void OnConstructPrimaryMovementChange(ConstructMovement movement)
+    {
+        // It is possible that a movement change can make constructions available / unavailable
         UpdateAvailableConstructions();
     }
 }
