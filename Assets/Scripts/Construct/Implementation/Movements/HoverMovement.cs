@@ -1,7 +1,4 @@
-using System;
-using System.Collections;
 using System.Threading.Tasks;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -80,7 +77,7 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
         OnStateChange.Invoke(this, IsActive);
     }
 
-    public async Task<bool> AttachTo(ConstructPart attacheePart)
+    public Task<bool> AttachTo(ConstructPart attacheePart)
     {
         isTransitioning = true;
 
@@ -96,13 +93,15 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
             + (attacheePart.WO.Extents.y + part.WO.Extents.y + 0.5f) * attacheePart.WO.transform.up;
 
         // TODO: Remove this debug delay
-        await Task.Delay(500);
+        // await Task.Delay(500);
 
         part.WO.transform.position = attacheePart.GetCentre()
             + (attacheePart.WO.Extents.y + part.WO.Extents.y - 0.2f) * attacheePart.WO.transform.up;
 
         isTransitioning = false;
-        return true;
+
+        // Currently not async so return task result
+        return Task.FromResult(true);
     }
 
     public override Vector3 GetCentre() => part.GetCentre();

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
@@ -117,7 +116,7 @@ public class PlayerConstructController : MonoBehaviour
         UpdateReticle();
     }
 
-    private async Task HandleInput()
+    private void HandleInput()
     {
         // Update input direction
         movementInput = Vector3.zero;
@@ -131,19 +130,21 @@ public class PlayerConstructController : MonoBehaviour
         // Update aiming
         aimInput = new Vector3(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"), 0.0f);
 
-        // Update skills and construction input
+        // Update skills input
         foreach (KeyValuePair<PlayerInput, int> actionInput in SKILL_BINDINGS)
         {
             if (actionInput.Key.GetDown()) construct.SkillInputDown(actionInput.Value);
             else if (actionInput.Key.GetUp()) construct.SkillInputUp(actionInput.Value);
         }
+
+        // Handle construction / deconstruction (ignoring async tasks)
         if (CONSTRUCTION_BINDING.GetDown() && availableConstructions.Length > 0)
         {
-            await construct.TryConstructPart(availableConstructions[0]);
+            _ = construct.TryConstructPart(availableConstructions[0]);
         }
         if (DECONSTRUCTION_BINDING.GetDown())
         {
-            construct.TryDeconstruct();
+            _ = construct.TryDeconstruct();
         }
     }
 

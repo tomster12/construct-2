@@ -69,7 +69,7 @@ public class AttachmentShape : ConstructShape
 
         OnPartsChange.Invoke(this, true);
         Assert.IsTrue(attacheePart.IsConstructed);
-        Assert.IsTrue(attachingPart.IsConstructed); // TODO: This fails
+        Assert.IsTrue(attachingPart.IsConstructed);
         return true;
     }
 
@@ -83,17 +83,18 @@ public class AttachmentShape : ConstructShape
         await Deconstruct();
     }
 
-    public override async Task Deconstruct()
+    public override Task Deconstruct()
     {
         Assert.IsTrue(IsConstructed);
         Assert.IsTrue(transitionType == TransitionType.None);
 
         transitionType = TransitionType.Deconstructing;
 
-        // TODO: Remove this debug delay
-        await Task.Delay(500);
-
         attachingPartPH.Release();
+
+        // Unparent attaching shape
+        // In the future this should be more complex
+        attachingPart.WO.transform.SetParent(null);
 
         Parts.Remove(attachingPart);
         attachingPart.NotifyRemovedFromActiveShape(this);
@@ -107,6 +108,9 @@ public class AttachmentShape : ConstructShape
         OnPartsChange.Invoke(this, false);
         Assert.IsFalse(attacheePart.IsConstructed);
         Assert.IsFalse(attachingPart.IsConstructed);
+
+        // Currently not async so return task result
+        return Task.CompletedTask;
     }
 
     private void Awake()

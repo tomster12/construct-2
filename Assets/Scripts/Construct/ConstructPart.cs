@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
@@ -64,6 +63,34 @@ public partial class ConstructPart : MonoBehaviour
     private List<ConstructShape> activeShapes = new();
     private ConstructShape constructionDependantShape = null;
 
+    public async Task Deconstruct()
+    {
+        // If this shape is not dependant on a shape then we the core part of a shape
+        // We only set construct to null if we are dependant on a shape
+        if (constructionDependantShape != null)
+        {
+            construct = null;
+            constructionDependantShape = null;
+        }
+
+        // Tell all shapes we involved in (not inherent) we are leaving
+        // This should call NotifyRemovedFromShape() on this part from each of the shapes
+        foreach (var shape in activeShapes)
+        {
+            if (!shapes.Contains(shape))
+            {
+                await shape.RemovePart(this);
+                Assert.IsFalse(activeShapes.Contains(shape));
+            }
+        }
+
+        // Similarly tell all of our inherent shapes to deconstruct
+        foreach (var shape in shapes)
+        {
+            await shape.Deconstruct();
+        }
+    }
+
     public PhysicalHandle TakeControl(IPartController controller)
     {
         Assert.IsTrue(CanControl);
@@ -81,33 +108,8 @@ public partial class ConstructPart : MonoBehaviour
     public void NotifyRemovedFromConstruct(Construct construct) // Expects caller to be Construct
     {
         Assert.IsTrue(this.construct == construct);
-        Deconstruct();
+        _ = Deconstruct();
         OnConstructedChange(this, EventType.Remove, construct);
-    }
-
-    public void Deconstruct()
-    {
-        // If this shape is not dependant on a shape then we the core part of a shape
-        // We only set construct to null if we are dependant on a shape
-        if (constructionDependantShape != null)
-        {
-            construct = null;
-            constructionDependantShape = null;
-        }
-
-        // Tell all shapes we involved in (not inherent) we are leaving
-        // This should call NotifyRemovedFromShape() on this part from each of the shapes
-        foreach (var shape in activeShapes)
-        {
-            if (!shapes.Contains(shape))
-            {
-                shape.RemovePart(this);
-                Assert.IsFalse(activeShapes.Contains(shape));
-            }
-        }
-
-        // Similarly tell all of our inherent shapes to deconstruct
-        foreach (var shape in shapes) shape.Deconstruct();
     }
 
     public void NotifyAddedToActiveShape(ConstructShape shape) // Expects caller to be ConstructShape

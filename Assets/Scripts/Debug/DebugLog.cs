@@ -59,6 +59,7 @@ public class DebugLog : MonoBehaviour
         }
 
         // Update the layout
+        messagesLayout.CalculateLayoutInputHorizontal(); // ?
         messagesLayout.CalculateLayoutInputVertical();
     }
 

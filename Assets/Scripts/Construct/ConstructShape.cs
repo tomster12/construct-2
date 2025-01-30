@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -16,7 +16,7 @@ public abstract class ConstructShape : MonoBehaviour, IPartController
 
     public abstract (bool, int) CanAddPart(ConstructPart part);
 
-    public abstract Task<bool> AddPart(ConstructPart part, int slot);
+    public abstract Task<Boolean> AddPart(ConstructPart part, int slot);
 
     public abstract Task RemovePart(ConstructPart part);
 

@@ -89,10 +89,10 @@ public class Construct : MonoBehaviour
         RemovePart(part);
     }
 
-    public void TryDeconstruct()
+    public async Task TryDeconstruct()
     {
         if (isConstructing) return;
-        corePart.Deconstruct();
+        await corePart.Deconstruct();
     }
 
     public PartConstruction[] GetAvailableConstructions(ConstructPart targetPart)
