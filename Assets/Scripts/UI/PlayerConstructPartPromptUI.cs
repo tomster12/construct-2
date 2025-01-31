@@ -14,7 +14,7 @@ public class PlayerConstructPartPromptUI : MonoBehaviour
     private PartConstruction[] relevantConstructions;
     private List<PlayerConstructShapeUI> shapes = new();
 
-    public void Init(PlayerConstructController player)
+    public void Init(PlayerConstructController.PlayingState player)
     {
         player.OnAvailableConstructionsChange += OnAvailableConstructionsChange;
 

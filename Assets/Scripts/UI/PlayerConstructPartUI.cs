@@ -10,12 +10,12 @@ public class PlayerConstructPartUI : MonoBehaviour
     [SerializeField] private GameObject shapesParent;
 
     private ConstructPart part;
-    private PlayerConstructController player;
+    private PlayerConstructController.PlayingState player;
     private List<PlayerConstructShapeUI> shapes = new();
     private Dictionary<ConstructShape, PartConstruction> constructionsMyShapeOtherPart = new();
     private List<PartConstruction> constructionsOtherShapeThisPart = new();
 
-    public void Init(ConstructPart part, PlayerConstructController player)
+    public void Init(ConstructPart part, PlayerConstructController.PlayingState player)
     {
         this.part = part;
         this.player = player;

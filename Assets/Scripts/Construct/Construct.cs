@@ -23,6 +23,7 @@ public class Construct : MonoBehaviour
     public UnityAction<EventType, ConstructShape, ConstructPart> OnActiveShapeEvent = delegate { };
     public UnityAction<ConstructMovement> OnPrimaryMovementChange = delegate { };
     public List<ConstructPart> Parts => parts;
+    public bool IsInitialized => corePart != null;
 
     private ConstructPart corePart;
     private List<ConstructPart> parts = new();
