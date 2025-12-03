@@ -51,6 +51,6 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Construct 2.sln",
+    "dotnet.defaultSolution": "Git-Construct.sln",
     "C_Cpp.errorSquiggles": "enabled"
 }

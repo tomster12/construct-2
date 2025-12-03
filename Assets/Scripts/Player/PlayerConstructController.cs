@@ -9,18 +9,20 @@ public partial class PlayerConstructController : MonoBehaviour
     public enum StateType
     { None, Playing, Forging }
 
-    public interface IState
+    public class BaseState
     {
-        void Enter();
+        public virtual void Init(PlayerConstructController controller)
+        {
+            this.controller = controller;
+        }
 
-        void Exit();
+        public virtual void Enter() { }
+        public virtual void Exit() { }
+        public virtual void Update() { }
+        public virtual void FixedUpdate() { }
 
-        void Update();
-
-        void FixedUpdate();
+        protected PlayerConstructController controller;
     }
-
-    private UnityAction OnRaycasterTargetChange = delegate { };
 
     [Header("References")]
     [SerializeField] private Construct construct;
@@ -36,9 +38,11 @@ public partial class PlayerConstructController : MonoBehaviour
     [SerializeField] private PlayingState playingState;
     [SerializeField] private ForgingState forgingState;
 
+    private Dictionary<StateType, BaseState> states = new();
     private StateType currentStateType = StateType.None;
-    private IState currentState;
-    private Raycaster raycaster;
+    private BaseState currentState = null;
+    private Raycaster raycaster = null;
+    private UnityAction OnRaycasterTargetChange = delegate { };
 
     private void Start()
     {
@@ -46,9 +50,16 @@ public partial class PlayerConstructController : MonoBehaviour
         camSS.transform.parent = camParent;
         camMain.transform.localPosition = Vector3.zero;
         camSS.transform.localPosition = Vector3.zero;
+
         raycaster = new Raycaster(camMain);
         raycaster.OnTargetChange += OnRaycasterTargetChange;
-        partPrompt.Init(this);
+
+        partPrompt.Init(playingState);
+
+        states[StateType.Playing] = playingState;
+        states[StateType.Forging] = forgingState;
+        playingState.Init(this);
+        forgingState.Init(this);
 
         Transition(StateType.Playing);
     }
@@ -68,15 +79,8 @@ public partial class PlayerConstructController : MonoBehaviour
         if (currentStateType == stateType) return;
 
         currentState?.Exit();
-
         currentStateType = stateType;
-        currentState = stateType switch
-        {
-            StateType.Playing => playingState,
-            StateType.Forging => forgingState,
-            _ => throw new ArgumentOutOfRangeException(nameof(stateType), stateType, null),
-        };
-
+        currentState = states[stateType];
         currentState.Enter();
     }
 
@@ -90,11 +94,11 @@ public partial class PlayerConstructController : MonoBehaviour
 public partial class PlayerConstructController
 {
     [Serializable]
-    public class PlayingState : IState
+    public class PlayingState : BaseState
     {
         public UnityAction<PartConstruction[]> OnAvailableConstructionsChange = delegate { };
 
-        private static readonly Dictionary<PlayerInput, int> SKILL_BINDINGS = new Dictionary<PlayerInput, int>()
+        private static readonly Dictionary<PlayerInput, int> SKILL_BINDINGS = new()
         {   { PlayerInput.MouseInput(0), 0 },
             { PlayerInput.MouseInput(1), 1 },
             { PlayerInput.KeyInput("1"), 2 },
@@ -124,7 +128,6 @@ public partial class PlayerConstructController
         [SerializeField] private float constructPartListUIHeight = 43.0f;
         [SerializeField] private float constructPartListUIPadding = 5.0f;
 
-        private readonly PlayerConstructController controller;
         private PartConstruction[] availableConstructions = new PartConstruction[0];
         private Vector3 movementInput;
         private Vector3 aimInput;
@@ -136,15 +139,8 @@ public partial class PlayerConstructController
         private Dictionary<ConstructPart, ConstructPartIndicatorUI> partIndicatorUIs;
         private List<PlayerConstructPartUI> partListUIs = new();
 
-        public PlayingState(PlayerConstructController controller)
+        public override void Enter()
         {
-            this.controller = controller;
-        }
-
-        public void Enter()
-        {
-            SetCameraTarget(controller.corePart.WO);
-
             controller.OnRaycasterTargetChange += OnRaycasterTargetChange;
 
             foreach (Transform child in constructPartListUIParent) Destroy(child.gameObject);
@@ -161,25 +157,10 @@ public partial class PlayerConstructController
             controller.LockMouse();
         }
 
-        public void Exit()
-        {
-        }
-
-        public void Update()
+        public override void Update()
         {
             HandleInput();
             UpdateCamera();
-        }
-
-        public void FixedUpdate()
-        {
-            FixedUpdateConstruct();
-        }
-
-        private void FixedUpdateConstruct()
-        {
-            controller.construct.Move(movementInput);
-            controller.construct.Aim(controller.raycaster.HitPoint);
         }
 
         private void HandleInput()
@@ -234,6 +215,17 @@ public partial class PlayerConstructController
 
             // Update controller raycaster
             controller.raycaster.Update();
+        }
+
+        public override void FixedUpdate()
+        {
+            FixedUpdateConstruct();
+        }
+
+        private void FixedUpdateConstruct()
+        {
+            controller.construct.Move(movementInput);
+            controller.construct.Aim(controller.raycaster.HitPoint);
         }
 
         private void SetCameraTarget(WorldObject targetWO)
@@ -323,7 +315,7 @@ public partial class PlayerConstructController
                     constructPartListUIPadding,
                     constructPartListUIPadding + i * (constructPartListUIGap + constructPartListUIHeight));
 
-                partUI.Init(part, controller);
+                partUI.Init(part, controller.playingState);
                 partListUIs.Add(partUI);
             }
         }
@@ -372,29 +364,7 @@ public partial class PlayerConstructController
 public partial class PlayerConstructController
 {
     [Serializable]
-    public class ForgingState : IState
+    public class ForgingState : BaseState
     {
-        private readonly PlayerConstructController controller;
-
-        public ForgingState(PlayerConstructController controller)
-        {
-            this.controller = controller;
-        }
-
-        public void Enter()
-        {
-        }
-
-        public void Exit()
-        {
-        }
-
-        public void Update()
-        {
-        }
-
-        public void FixedUpdate()
-        {
-        }
     }
 }

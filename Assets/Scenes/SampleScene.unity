@@ -448,28 +448,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a2562ca102a32e4583d21ba37b40082, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  camMain: {fileID: 963194227}
-  camSS: {fileID: 1603995679}
-  camParent: {fileID: 1435018595}
   construct: {fileID: 132081270}
   corePart: {fileID: 795797505}
-  constructPartListUIParent: {fileID: 1753741063}
+  camParent: {fileID: 1435018595}
+  camMain: {fileID: 963194227}
+  camSS: {fileID: 1603995679}
   constantReticle: {fileID: 1396302047}
   dynamicReticle: {fileID: 1825686956}
   partPrompt: {fileID: 5669100482059998569}
-  constructPartIndicatorUIPrefab: {fileID: 5669100482907960803, guid: 1dc6f7f87711c2a4ea359652c6249021, type: 3}
-  constructPartUIPrefab: {fileID: 2409990657070930711, guid: efd5914faf392f34ab1dbfa6ddb3ff3e, type: 3}
-  camZoomAcc: 1000
-  camZoomDrag: 0.92
-  camZoomVelMax: 10
-  reticleLerp: 40
-  camOffsetBoundsMult: {x: 1, y: 0.5, z: -1}
-  camOffsetAdditional: {x: 0.5, y: 0, z: 0}
-  camAimSpeed: 300
-  nearbyPartRadius: 10
-  constructPartListUIGap: 3
-  constructPartListUIHeight: 40
-  constructPartListUIPadding: 0
+  playingState:
+    constructPartListUIParent: {fileID: 1753741063}
+    constructPartIndicatorUIPrefab: {fileID: 5669100482907960803, guid: 1dc6f7f87711c2a4ea359652c6249021, type: 3}
+    constructPartUIPrefab: {fileID: 2409990657070930711, guid: efd5914faf392f34ab1dbfa6ddb3ff3e, type: 3}
+    camAimSpeed: 40
+    camZoomAcc: 600
+    camZoomDrag: 0.95
+    camZoomVelMax: 0.1
+    camOffsetBoundsMult: {x: 1, y: 0.5, z: -1}
+    camOffsetAdditional: {x: 1, y: 0, z: 0}
+    reticleLerp: 5
+    nearbyPartRadius: 5
+    constructPartListUIGap: 5
+    constructPartListUIHeight: 43
+    constructPartListUIPadding: 5
 --- !u!4 &132081269
 Transform:
   m_ObjectHideFlags: 0
