@@ -17,6 +17,7 @@ public partial class PlayerConstructController : MonoBehaviour
         }
 
         public virtual void Enter() { }
+
         public virtual void Exit() { }
         public virtual void Update() { }
         public virtual void FixedUpdate() { }
@@ -29,7 +30,7 @@ public partial class PlayerConstructController : MonoBehaviour
     [SerializeField] private ConstructPart corePart;
     [SerializeField] private Transform camParent;
     [SerializeField] private Camera camMain;
-    [SerializeField] private Camera camSS;
+    [SerializeField] private Camera camOverlay;
     [SerializeField] private RectTransform constantReticle;
     [SerializeField] private RectTransform dynamicReticle;
     [SerializeField] private PlayerConstructPartPromptUI partPrompt;
@@ -38,29 +39,30 @@ public partial class PlayerConstructController : MonoBehaviour
     [SerializeField] private PlayingState playingState;
     [SerializeField] private ForgingState forgingState;
 
-    private Dictionary<StateType, BaseState> states = new();
-    private StateType currentStateType = StateType.None;
+    private Dictionary<StateType, BaseState> states;
+    private StateType currentStateType;
     private BaseState currentState = null;
     private Raycaster raycaster = null;
-    private UnityAction OnRaycasterTargetChange = delegate { };
 
     private void Start()
     {
         camMain.transform.parent = camParent;
-        camSS.transform.parent = camParent;
+        camOverlay.transform.parent = camParent;
         camMain.transform.localPosition = Vector3.zero;
-        camSS.transform.localPosition = Vector3.zero;
-
-        raycaster = new Raycaster(camMain);
-        raycaster.OnTargetChange += OnRaycasterTargetChange;
+        camOverlay.transform.localPosition = Vector3.zero;
 
         partPrompt.Init(playingState);
 
+        raycaster = new Raycaster(camMain);
+
+        states = new();
         states[StateType.Playing] = playingState;
         states[StateType.Forging] = forgingState;
         playingState.Init(this);
         forgingState.Init(this);
 
+        currentStateType = StateType.None;
+        currentState = null;
         Transition(StateType.Playing);
     }
 
@@ -91,6 +93,7 @@ public partial class PlayerConstructController : MonoBehaviour
     }
 }
 
+// PlayerConstructController.PlayingState
 public partial class PlayerConstructController
 {
     [Serializable]
@@ -98,15 +101,15 @@ public partial class PlayerConstructController
     {
         public UnityAction<PartConstruction[]> OnAvailableConstructionsChange = delegate { };
 
-        private static readonly Dictionary<PlayerInput, int> SKILL_BINDINGS = new()
+        private static readonly Dictionary<PlayerInput, int> SKILL_INPUTS = new()
         {   { PlayerInput.MouseInput(0), 0 },
             { PlayerInput.MouseInput(1), 1 },
             { PlayerInput.KeyInput("1"), 2 },
             { PlayerInput.KeyInput("2"), 3 },
             { PlayerInput.KeyInput("3"), 4 },
             { PlayerInput.KeyInput("4"), 5 }, };
-        private static readonly PlayerInput CONSTRUCTION_BINDING = PlayerInput.KeyInput("f");
-        private static readonly PlayerInput DECONSTRUCTION_BINDING = PlayerInput.KeyInput("g");
+        private static readonly PlayerInput CONSTRUCT_INPUT = PlayerInput.KeyInput("f");
+        private static readonly PlayerInput DECONSTRUCT_INPUT = PlayerInput.KeyInput("g");
 
         [Header("References")]
         [SerializeField] private RectTransform constructPartListUIParent;
@@ -128,7 +131,7 @@ public partial class PlayerConstructController
         [SerializeField] private float constructPartListUIHeight = 43.0f;
         [SerializeField] private float constructPartListUIPadding = 5.0f;
 
-        private PartConstruction[] availableConstructions = new PartConstruction[0];
+        private bool firstEnter = true;
         private Vector3 movementInput;
         private Vector3 aimInput;
         private Vector3 camOffsetBounds;
@@ -136,34 +139,65 @@ public partial class PlayerConstructController
         private float camZoomVelocity = 0.0f;
         private float camZoomDistance = 5.0f;
         private Vector2 camRotation = Vector2.zero;
+        private PartConstruction[] availableConstructions = new PartConstruction[0];
         private Dictionary<ConstructPart, ConstructPartIndicatorUI> partIndicatorUIs;
         private List<PlayerConstructPartUI> partListUIs = new();
 
+        // ---------------- Lifetime ----------------
+
         public override void Enter()
         {
-            controller.OnRaycasterTargetChange += OnRaycasterTargetChange;
-
-            foreach (Transform child in constructPartListUIParent) Destroy(child.gameObject);
+            controller.raycaster.OnTargetChange += OnRaycasterTargetChange;
 
             controller.construct.OnPartEvent += OnConstructPartEvent;
             controller.construct.OnSkillEvent += OnConstructSkillEvent;
             controller.construct.OnMovementEvent += OnConstructMovementEvent;
             controller.construct.OnActiveShapeEvent += OnConstructShapeEvent;
-            controller.construct.OnPrimaryMovementChange += OnConstructPrimaryMovementChange;
+            controller.construct.OnControllingMovementChange += OnConstructPrimaryMovementChange;
 
-            if (!controller.construct.IsInitialized) controller.construct.InitCore(controller.corePart);
+            foreach (Transform child in constructPartListUIParent) Destroy(child.gameObject);
 
-            SetCameraTarget(controller.corePart.WO);
+            if (firstEnter)
+            {
+                firstEnter = false;   
+                controller.construct.InitCore(controller.corePart);
+            }
+
+            camOffsetBounds = controller.corePart.WO.MaxExtentXZ * camOffsetBoundsMult + camOffsetAdditional;
+            camZoomDistance = controller.corePart.WO.MaxExtentXZ * 15.0f;
+            camTarget = controller.corePart.WO.transform;
+            UpdateCamera();
+
             controller.LockMouse();
+        }
+
+        public override void Exit()
+        {
+            controller.raycaster.OnTargetChange -= OnRaycasterTargetChange;
+
+            controller.construct.OnPartEvent -= OnConstructPartEvent;
+            controller.construct.OnSkillEvent -= OnConstructSkillEvent;
+            controller.construct.OnMovementEvent -= OnConstructMovementEvent;
+            controller.construct.OnActiveShapeEvent -= OnConstructShapeEvent;
+            controller.construct.OnControllingMovementChange -= OnConstructPrimaryMovementChange;
         }
 
         public override void Update()
         {
-            HandleInput();
+            UpdateHandleInput();
             UpdateCamera();
+            UpdatePartIndicators();
+            UpdateReticle();
         }
 
-        private void HandleInput()
+        public override void FixedUpdate()
+        {
+            FixedUpdateConstruct();
+        }
+
+        // ---------------- Main ----------------
+
+        private void UpdateHandleInput()
         {
             // Update input direction
             movementInput = Vector3.zero;
@@ -178,18 +212,18 @@ public partial class PlayerConstructController
             aimInput = new Vector3(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"), 0.0f);
 
             // Update skills input
-            foreach (KeyValuePair<PlayerInput, int> actionInput in SKILL_BINDINGS)
+            foreach (KeyValuePair<PlayerInput, int> actionInput in SKILL_INPUTS)
             {
                 if (actionInput.Key.GetDown()) controller.construct.SkillInputDown(actionInput.Value);
                 else if (actionInput.Key.GetUp()) controller.construct.SkillInputUp(actionInput.Value);
             }
 
             // Handle construction / deconstruction (ignoring async tasks)
-            if (CONSTRUCTION_BINDING.GetDown() && availableConstructions.Length > 0)
+            if (CONSTRUCT_INPUT.GetDown() && availableConstructions.Length > 0)
             {
                 _ = controller.construct.TryConstructPart(availableConstructions[0]);
             }
-            if (DECONSTRUCTION_BINDING.GetDown())
+            if (DECONSTRUCT_INPUT.GetDown())
             {
                 _ = controller.construct.TryDeconstruct();
             }
@@ -210,30 +244,11 @@ public partial class PlayerConstructController
             // Update controller cameras
             controller.camParent.transform.position = camTarget.transform.position;
             controller.camMain.transform.localPosition = localPos;
-            controller.camSS.transform.localPosition = localPos;
+            controller.camOverlay.transform.localPosition = localPos;
             controller.camParent.transform.localRotation = Quaternion.Euler(camRotation.x, camRotation.y, 0.0f);
 
             // Update controller raycaster
             controller.raycaster.Update();
-        }
-
-        public override void FixedUpdate()
-        {
-            FixedUpdateConstruct();
-        }
-
-        private void FixedUpdateConstruct()
-        {
-            controller.construct.Move(movementInput);
-            controller.construct.Aim(controller.raycaster.HitPoint);
-        }
-
-        private void SetCameraTarget(WorldObject targetWO)
-        {
-            camOffsetBounds = targetWO.MaxExtentXZ * camOffsetBoundsMult + camOffsetAdditional;
-            camZoomDistance = targetWO.MaxExtentXZ * 15.0f;
-            camTarget = targetWO.transform;
-            UpdateCamera();
         }
 
         private void UpdatePartIndicators()
@@ -266,7 +281,24 @@ public partial class PlayerConstructController
             }
         }
 
-        private void UpdateAvailableConstructions()
+        private void UpdateReticle()
+        {
+            // Keep the constant reticle in the centre of the screen
+            Vector3 target = new(Screen.width / 2, Screen.height / 2, 0.0f);
+            controller.constantReticle.anchoredPosition = target;
+
+            // If highlighting a part then centre the dynamic reticle on the part
+            if (controller.raycaster.HitConstructPart != null) target = controller.camMain.WorldToScreenPoint(controller.raycaster.HitConstructPart.WO.transform.position);
+            controller.dynamicReticle.anchoredPosition = Vector2.Lerp(controller.dynamicReticle.anchoredPosition, target, reticleLerp * Time.deltaTime);
+        }
+
+        private void FixedUpdateConstruct()
+        {
+            controller.construct.Move(movementInput);
+            controller.construct.Aim(controller.raycaster.HitPoint);
+        }
+
+        private void RecalculateAvailableConstructions()
         {
             // If targetting a part calculate available constructions with that part
             if (controller.raycaster.HitConstructPart == null)
@@ -282,17 +314,6 @@ public partial class PlayerConstructController
                 availableConstructions = controller.construct.GetAvailableConstructions(controller.raycaster.HitConstructPart);
                 OnAvailableConstructionsChange(availableConstructions);
             }
-        }
-
-        private void UpdateReticle()
-        {
-            // Keep the constant reticle in the centre of the screen
-            Vector3 target = new(Screen.width / 2, Screen.height / 2, 0.0f);
-            controller.constantReticle.anchoredPosition = target;
-
-            // If highlighting a part then centre the dynamic reticle on the part
-            if (controller.raycaster.HitConstructPart != null) target = controller.camMain.WorldToScreenPoint(controller.raycaster.HitConstructPart.WO.transform.position);
-            controller.dynamicReticle.anchoredPosition = Vector2.Lerp(controller.dynamicReticle.anchoredPosition, target, reticleLerp * Time.deltaTime);
         }
 
         private void RedrawConstructPartListUI()
@@ -320,10 +341,12 @@ public partial class PlayerConstructController
             }
         }
 
+        // ---------------- Events ----------------
+
         private void OnRaycasterTargetChange()
         {
             controller.partPrompt.SetTarget(controller.raycaster.HitConstructPart);
-            UpdateAvailableConstructions();
+            RecalculateAvailableConstructions();
         }
 
         private void OnConstructPartEvent(Construct.EventType type, ConstructPart part)
@@ -333,7 +356,7 @@ public partial class PlayerConstructController
             RedrawConstructPartListUI();
 
             // We then should also recalculate what available constructions we have
-            UpdateAvailableConstructions();
+            RecalculateAvailableConstructions();
         }
 
         private void OnConstructSkillEvent(Construct.EventType type, ConstructSkill skill)
@@ -344,23 +367,24 @@ public partial class PlayerConstructController
         private void OnConstructMovementEvent(Construct.EventType type, ConstructMovement movement)
         {
             // It is possible that a movement change can make constructions available / unavailable
-            UpdateAvailableConstructions();
+            RecalculateAvailableConstructions();
         }
 
         private void OnConstructShapeEvent(Construct.EventType type, ConstructShape shape, ConstructPart part)
         {
             // It is likely that a shape change can make constructions available / unavailable
-            UpdateAvailableConstructions();
+            RecalculateAvailableConstructions();
         }
 
         private void OnConstructPrimaryMovementChange(ConstructMovement movement)
         {
             // It is possible that a movement change can make constructions available / unavailable
-            UpdateAvailableConstructions();
+            RecalculateAvailableConstructions();
         }
     }
 }
 
+// PlayerConstructController.ForgingState
 public partial class PlayerConstructController
 {
     [Serializable]

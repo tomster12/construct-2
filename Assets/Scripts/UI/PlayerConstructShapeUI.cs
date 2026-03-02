@@ -42,7 +42,7 @@ public class PlayerConstructShapeUI : MonoBehaviour
     public void Init(ConstructShape shape)
     {
         this.shape = shape;
-        this.shape.OnPartsChange += OnShapePartsChange;
+        this.shape.OnPartEvent += OnShapePartsChange;
         UpdateSlotColours();
         parent.sizeDelta = sizeNotSuggestion * Vector2.one;
     }
@@ -80,7 +80,7 @@ public class PlayerConstructShapeUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        shape.OnPartsChange -= OnShapePartsChange;
+        shape.OnPartEvent -= OnShapePartsChange;
         shape = null;
     }
 

@@ -9,7 +9,7 @@ public abstract class ConstructShape : MonoBehaviour, IPartController
     public enum TransitionType
     { None, Constructing, Adding, Removing, Deconstructing }
 
-    public UnityAction<ConstructShape, bool> OnPartsChange { get; set; } = delegate { };
+    public UnityAction<ConstructShape, bool> OnPartEvent { get; set; } = delegate { };
     public List<ConstructPart> Parts { get; } = new();
     public bool IsConstructed { get; protected set; }
     public TransitionType transitionType { get; protected set; }

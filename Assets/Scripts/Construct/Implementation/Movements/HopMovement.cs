@@ -21,7 +21,7 @@ public class HopMovement : ConstructMovement
         Assert.IsTrue(CanActivate());
         partPH = part.TakeControl(this);
         IsActive = true;
-        OnStateChange.Invoke(this, IsActive);
+        OnStateChanged.Invoke(this, IsActive);
     }
 
     public override void Deactivate()
@@ -29,7 +29,7 @@ public class HopMovement : ConstructMovement
         Assert.IsTrue(IsActive);
         partPH.Release();
         IsActive = false;
-        OnStateChange.Invoke(this, IsActive);
+        OnStateChanged.Invoke(this, IsActive);
     }
 
     public override Vector3 GetCentre() => part.GetCentre();

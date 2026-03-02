@@ -66,7 +66,7 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
         partPH.SetPhysicsMode(false, false);
         partPH.SetPhysicsProperties(hoverDrag, hoverAngularDrag);
         IsActive = true;
-        OnStateChange.Invoke(this, IsActive);
+        OnStateChanged.Invoke(this, IsActive);
     }
 
     public override void Deactivate()
@@ -74,7 +74,7 @@ public class HoverMovement : ConstructMovement, IAttacherMovement
         Assert.IsTrue(IsActive);
         partPH.Release();
         IsActive = false;
-        OnStateChange.Invoke(this, IsActive);
+        OnStateChanged.Invoke(this, IsActive);
     }
 
     public Task<bool> AttachTo(ConstructPart attacheePart)

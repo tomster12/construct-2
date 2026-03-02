@@ -5,7 +5,7 @@ using UnityEngine.Events;
 [Serializable]
 public class Raycaster
 {
-    public bool Hit { get; private set; }
+    public bool HasHit { get; private set; }
     public Vector3 HitPoint { get; private set; }
     public Transform HitTransform { get; private set; }
     public WorldObject HitWorldObject { get; private set; }
@@ -14,6 +14,7 @@ public class Raycaster
 
     private static float MAX_DISTANCE = 100f;
     private Camera camera;
+    private Ray ray;
 
     public Raycaster(Camera camera)
     {
@@ -22,12 +23,14 @@ public class Raycaster
 
     public void Update()
     {
-        Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+        ray = camera.ScreenPointToRay(Input.mousePosition);
+
         if (Physics.Raycast(ray, out RaycastHit hit, MAX_DISTANCE))
         {
             HitPoint = hit.point;
-            Hit = true;
+            HasHit = true;
             if (hit.collider.transform == HitTransform) return;
+
             HitTransform = hit.collider.transform;
             HitWorldObject = HitTransform.GetComponent<WorldObject>();
             OnTargetChange.Invoke();
@@ -35,8 +38,9 @@ public class Raycaster
         else
         {
             HitPoint = ray.GetPoint(MAX_DISTANCE);
-            Hit = false;
+            HasHit = false;
             if (HitTransform == null) return;
+
             HitTransform = null;
             HitWorldObject = null;
             OnTargetChange.Invoke();

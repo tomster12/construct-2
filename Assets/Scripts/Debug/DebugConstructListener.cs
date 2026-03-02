@@ -21,15 +21,15 @@ public class DebugConstructListener : MonoBehaviour
 
         if (eventType == Construct.EventType.Add)
         {
-            part.OnConstructedChange += OnConstructedChange;
-            part.OnActiveShapeEvent += OnPartActiveShapeEvent;
+            part.OnConstructEvent += OnConstructedChange;
+            part.OnShapeParticipationEvent += OnPartActiveShapeEvent;
             part.OnMovementEvent += OnPartMovementEvent;
             part.OnSkillEvent += OnPartSkillEvent;
         }
         else if (eventType == Construct.EventType.Remove)
         {
-            part.OnConstructedChange -= OnConstructedChange;
-            part.OnActiveShapeEvent -= OnPartActiveShapeEvent;
+            part.OnConstructEvent -= OnConstructedChange;
+            part.OnShapeParticipationEvent -= OnPartActiveShapeEvent;
             part.OnMovementEvent -= OnPartMovementEvent;
             part.OnSkillEvent -= OnPartSkillEvent;
         }
@@ -46,11 +46,11 @@ public class DebugConstructListener : MonoBehaviour
 
         if (eventType == Construct.EventType.Add)
         {
-            movement.OnStateChange += OnMovementStateChange;
+            movement.OnStateChanged += OnMovementStateChange;
         }
         else if (eventType == Construct.EventType.Remove)
         {
-            movement.OnStateChange -= OnMovementStateChange;
+            movement.OnStateChanged -= OnMovementStateChange;
         }
     }
 
@@ -60,11 +60,11 @@ public class DebugConstructListener : MonoBehaviour
 
         if (eventType == Construct.EventType.Add)
         {
-            shape.OnPartsChange += OnShapePartsChange;
+            shape.OnPartEvent += OnShapePartsChange;
         }
         else if (eventType == Construct.EventType.Remove)
         {
-            shape.OnPartsChange -= OnShapePartsChange;
+            shape.OnPartEvent -= OnShapePartsChange;
         }
     }
 

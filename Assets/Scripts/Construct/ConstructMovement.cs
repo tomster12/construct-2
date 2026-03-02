@@ -3,7 +3,7 @@ using UnityEngine.Events;
 
 public abstract class ConstructMovement : MonoBehaviour, IPartController
 {
-    public UnityAction<ConstructMovement, bool> OnStateChange { get; set; } = delegate { };
+    public UnityAction<ConstructMovement, bool> OnStateChanged { get; set; } = delegate { };
     public bool IsActive { get; protected set; }
 
     public abstract void Move(Vector3 dir);

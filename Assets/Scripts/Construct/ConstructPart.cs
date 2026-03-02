@@ -32,8 +32,8 @@ public partial class ConstructPart : MonoBehaviour
 
     public static List<ConstructPart> GlobalParts = new();
 
-    public UnityAction<ConstructPart, EventType, Construct> OnConstructedChange = delegate { };
-    public UnityAction<ConstructPart, EventType, ConstructShape> OnActiveShapeEvent = delegate { };
+    public UnityAction<ConstructPart, EventType, Construct> OnConstructEvent = delegate { };
+    public UnityAction<ConstructPart, EventType, ConstructShape> OnShapeParticipationEvent = delegate { };
     public UnityAction<ConstructPart, EventType, ConstructMovement> OnMovementEvent = delegate { };
     public UnityAction<ConstructPart, EventType, ConstructSkill> OnSkillEvent = delegate { };
 
@@ -102,17 +102,17 @@ public partial class ConstructPart : MonoBehaviour
     {
         Assert.IsNull(this.construct);
         this.construct = construct;
-        OnConstructedChange(this, EventType.Add, construct);
+        OnConstructEvent(this, EventType.Add, construct);
     }
 
     public void NotifyRemovedFromConstruct(Construct construct) // Expects caller to be Construct
     {
         Assert.IsTrue(this.construct == construct);
         _ = Deconstruct();
-        OnConstructedChange(this, EventType.Remove, construct);
+        OnConstructEvent(this, EventType.Remove, construct);
     }
 
-    public void NotifyAddedToActiveShape(ConstructShape shape) // Expects caller to be ConstructShape
+    public void NotifyAddedToShape(ConstructShape shape) // Expects caller to be ConstructShape
     {
         // Can not be added to an existing shape
         Assert.IsFalse(activeShapes.Contains(shape));
@@ -126,15 +126,15 @@ public partial class ConstructPart : MonoBehaviour
         }
 
         activeShapes.Add(shape);
-        OnActiveShapeEvent(this, EventType.Add, shape);
+        OnShapeParticipationEvent(this, EventType.Add, shape);
     }
 
-    public void NotifyRemovedFromActiveShape(ConstructShape shape) // Expects caller to be ConstructShape
+    public void NotifyRemovedFromShape(ConstructShape shape) // Expects caller to be ConstructShape
     {
         // Can only be removed from an active shape
         Assert.IsTrue(activeShapes.Contains(shape));
         activeShapes.Remove(shape);
-        OnActiveShapeEvent(this, EventType.Remove, shape);
+        OnShapeParticipationEvent(this, EventType.Remove, shape);
 
         // If we are dependant on this shape then expect to be removed from the construct
         // The construct should pick this up in the OnActiveShapeEvent

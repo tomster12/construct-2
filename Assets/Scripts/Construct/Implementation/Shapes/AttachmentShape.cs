@@ -57,8 +57,8 @@ public class AttachmentShape : ConstructShape
         attachingPart = part;
         Parts.Add(attachingPart);
 
-        attachingPart.NotifyAddedToActiveShape(this);
-        attacheePart.NotifyAddedToActiveShape(this);
+        attachingPart.NotifyAddedToShape(this);
+        attacheePart.NotifyAddedToShape(this);
 
         attachingPartPH = attachingPart.TakeControl(this);
         attachingPartPH.SetPhysicsMode(true, false);
@@ -67,7 +67,7 @@ public class AttachmentShape : ConstructShape
         transitionType = TransitionType.None;
         IsConstructed = true;
 
-        OnPartsChange.Invoke(this, true);
+        OnPartEvent.Invoke(this, true);
         Assert.IsTrue(attacheePart.IsConstructed);
         Assert.IsTrue(attachingPart.IsConstructed);
         return true;
@@ -97,15 +97,15 @@ public class AttachmentShape : ConstructShape
         attachingPart.WO.transform.SetParent(null);
 
         Parts.Remove(attachingPart);
-        attachingPart.NotifyRemovedFromActiveShape(this);
+        attachingPart.NotifyRemovedFromShape(this);
         attachingPart = null;
 
-        attacheePart.NotifyRemovedFromActiveShape(this);
+        attacheePart.NotifyRemovedFromShape(this);
 
         transitionType = TransitionType.None;
         IsConstructed = false;
 
-        OnPartsChange.Invoke(this, false);
+        OnPartEvent.Invoke(this, false);
         Assert.IsFalse(attacheePart.IsConstructed);
         Assert.IsFalse(attachingPart.IsConstructed);
 
@@ -117,6 +117,6 @@ public class AttachmentShape : ConstructShape
     {
         Assert.IsTrue(attacheePart != null);
         Parts.Add(attacheePart);
-        OnPartsChange.Invoke(this, true);
+        OnPartEvent.Invoke(this, true);
     }
 }

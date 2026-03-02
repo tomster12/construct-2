@@ -26,13 +26,13 @@ public class PlayerConstructPartUI : MonoBehaviour
         RedrawProperties();
         RedrawShapes();
 
-        this.part.OnActiveShapeEvent += OnPartShapeEvent;
+        this.part.OnShapeParticipationEvent += OnPartShapeEvent;
         this.player.OnAvailableConstructionsChange += OnAvailableConstructionsChange;
     }
 
     private void OnDestroy()
     {
-        part.OnActiveShapeEvent -= OnPartShapeEvent;
+        part.OnShapeParticipationEvent -= OnPartShapeEvent;
         player.OnAvailableConstructionsChange -= OnAvailableConstructionsChange;
     }
 
